@@ -1,0 +1,48 @@
+data:
+  train_path: "../data/train.csv"
+  test_path: "../data/test.csv"
+  max_seq_length: 1024
+  test_size: 0.1
+  prompt:
+    no_question: "지문:\n {paragraph}\n\n 질문:\n {question}\n\n 선택지:\n {choices}\n\n 1, 2, 3, 4, 5 중에 하나를 정답으로 고르세요.\n 정답:"
+    with_question: "지문:\n {paragraph}\n\n 질문:\n {question}\n\n <보기>:\n {question_plus}\n\n 선택지:\n {choices}\n\n 1, 2, 3, 4, 5 중에 하나를 정답으로 고르세요.\n 정답:"
+
+model:
+  base_model: "beomi/gemma-ko-2b"
+  torch_dtype: "float16"
+  tokenizer:
+    padding_side: "right"
+    chat_template: "{% if messages[0]['role'] == 'system' %}{% set system_message = messages[0]['content'] %}{% endif %}{% if system_message is defined %}{{ system_message }}{% endif %}{% for message in messages %}{% set content = message['content'] %}{% if message['role'] == 'user' %}{{ '<start_of_turn>user\n' + content + '<end_of_turn>\n<start_of_turn>model\n' }}{% elif message['role'] == 'assistant' %}{{ content + '<end_of_turn>\n' }}{% endif %}{% endfor %}"
+
+training:
+  lora:
+    r: 6
+    lora_alpha: 8
+    lora_dropout: 0.05
+    target_modules: ["q_proj", "k_proj"]
+    bias: "none"
+    task_type: "CAUSAL_LM"
+
+  params:
+    do_train: true
+    do_eval: true
+    lr_scheduler_type: "cosine"
+    per_device_train_batch_size: 1
+    per_device_eval_batch_size: 1
+    num_train_epochs: 3
+    learning_rate: 2e-5
+    weight_decay: 0.01
+    logging_steps: 1
+    save_strategy: "epoch"
+    eval_strategy: "epoch"
+    save_total_limit: 2
+    save_only_model: true
+    report_to: "none"
+    output_dir: "outputs"
+
+inference:
+  output_path: "outputs/output.csv"
+
+log:
+  file: "./log/file.log"
+  level: "DEBUG"

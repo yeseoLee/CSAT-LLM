@@ -9,7 +9,7 @@
 ##################### Install #####################
 apt-get update
 apt-get install -y sudo
-sudo apt-get install -y wget git vim
+sudo apt-get install -y wget git vim build-essential
 
 ##################### Set root password #####################
 echo "root:root" | chpasswd
@@ -103,10 +103,8 @@ echo "Setup complete!"
 
 
 ##### git은 각자 폴더에서 세팅 #####
-# # git config
-# git config user.email "$email"
-# git config user.name "$username"
-# git config credential.helper "cache --timeout=360000"
-
-# # git clone
 # git clone https://"$token"@github.com/boostcampaitech7/level2-nlp-generationfornlp-nlp-02-lv3.git
+
+# git config --local user.email "$email"
+# git config --local user.name "$username"
+# git config --local credential.helper "cache --timeout=360000"

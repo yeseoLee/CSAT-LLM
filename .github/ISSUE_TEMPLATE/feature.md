@@ -7,12 +7,12 @@ assignees:
 ---
 # 🚀 Feature
 
-## 📎 Context
+## 📎 내용
 
 - context 1
 - context 2
 
-## 📌 CheckList
+## 📌 체크리스트
 
 - [ ] todo 1
 - [ ] todo 2

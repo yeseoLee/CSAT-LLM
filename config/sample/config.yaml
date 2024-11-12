@@ -31,7 +31,7 @@ training:
     per_device_train_batch_size: 1
     per_device_eval_batch_size: 1
     num_train_epochs: 3
-    learning_rate: 2e-5
+    learning_rate: 2.0e-05
     weight_decay: 0.01
     logging_steps: 1
     save_strategy: "epoch"
@@ -39,11 +39,13 @@ training:
     save_total_limit: 2
     save_only_model: true
     report_to: "none"
-    output_dir: "outputs"
+    output_dir: "../outputs"
+    overwrite_output_dir: true
+
 
 inference:
-  output_path: "outputs/output.csv"
+  output_path: "../outputs/output.csv"
 
 log:
-  file: "./log/file.log"
+  file: "../log/file.log"
   level: "DEBUG"

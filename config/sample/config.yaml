@@ -44,7 +44,7 @@ training:
 
 
 inference:
-  output_path: "../outputs/output.csv"
+  output_path: "../outputs/"
 
 log:
   file: "../log/file.log"

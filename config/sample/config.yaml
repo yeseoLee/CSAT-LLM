@@ -49,3 +49,11 @@ inference:
 log:
   file: "../log/file.log"
   level: "DEBUG"
+
+wandb:
+  project: generation_for_nlp
+  entity: hidong1015-nlp04
+
+exp:
+  # 실험자 [sujin, seongmin, sungjae, gayeon, yeseo, minseo]
+  username: pubao

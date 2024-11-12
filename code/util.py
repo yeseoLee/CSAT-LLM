@@ -45,7 +45,7 @@ def create_experiment_filename():
     config = load_config()
     username = config["exp"]["username"]
     train_path = config["data"]["train_path"]
-    base_model = config["model"]["base_model"]
+    base_model = config["model"]["base_model"].replace("/", "_")
     num_train_epochs = config["training"]["params"]["num_train_epochs"]
     learning_rate = config["training"]["params"]["learning_rate"]
     current_time = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%m%d%H%M")

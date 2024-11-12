@@ -1,6 +1,8 @@
 from ast import literal_eval
 
 from datasets import Dataset
+from loguru import logger
+import numpy as np
 import pandas as pd
 
 
@@ -113,4 +115,13 @@ class DataLoader:
 
     def _split_dataset(self, dataset):
         split_dataset = dataset.train_test_split(test_size=self.test_size, seed=42)
-        return split_dataset["train"], split_dataset["test"]
+        train_dataset = split_dataset["train"]
+        eval_dataset = split_dataset["test"]
+
+        logger.debug(self.tokenizer.decode(train_dataset[0]["input_ids"], skip_special_tokens=True))
+        train_dataset_token_lengths = [len(train_dataset[i]["input_ids"]) for i in range(len(train_dataset))]
+        logger.info(f"max token length: {max(train_dataset_token_lengths)}")
+        logger.info(f"min token length: {min(train_dataset_token_lengths)}")
+        logger.info(f"avg token length: {np.mean(train_dataset_token_lengths)}")
+
+        return train_dataset, eval_dataset

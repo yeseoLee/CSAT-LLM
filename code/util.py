@@ -28,7 +28,7 @@ def load_config():
     return config
 
 
-def set_logger(log_file="./log/file.log", log_level="DEBUG"):
+def set_logger(log_file="../log/file.log", log_level="DEBUG"):
     # 로거 설정
     logger.add(
         log_file,

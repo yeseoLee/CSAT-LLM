@@ -1,3 +1,4 @@
+from loguru import logger
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -21,6 +22,7 @@ class ModelHandler:
     def _load_tokenizer(self):
         tokenizer = AutoTokenizer.from_pretrained(self.base_model, trust_remote_code=True)
         self._setup_tokenizer(tokenizer)
+        logger.debug(tokenizer.chat_template)
         return tokenizer
 
     def _setup_tokenizer(self, tokenizer):

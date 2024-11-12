@@ -44,7 +44,6 @@ class CustomTrainer:
             do_eval=self.training_config["params"]["do_eval"],
             lr_scheduler_type=self.training_config["params"]["lr_scheduler_type"],
             max_seq_length=self.training_config["params"]["max_seq_length"],
-            output_dir=self.training_config["params"]["output_dir"],
             per_device_train_batch_size=self.training_config["params"]["per_device_train_batch_size"],
             per_device_eval_batch_size=self.training_config["params"]["per_device_eval_batch_size"],
             num_train_epochs=self.training_config["params"]["num_train_epochs"],
@@ -56,6 +55,8 @@ class CustomTrainer:
             save_total_limit=self.training_config["params"]["save_total_limit"],
             save_only_model=self.training_config["params"]["save_only_model"],
             report_to=self.training_config["params"]["report_to"],
+            output_dir=self.training_config["params"]["output_dir"],
+            overwrite_output_dir=self.training_config["params"]["overwrite_output_dir"],
         )
 
         return SFTTrainer(
@@ -80,7 +81,7 @@ class CustomTrainer:
             self.tokenizer.vocab["4"],
             self.tokenizer.vocab["5"],
         ]
-        return logits[:, -2, logit_idx]
+        return logits[:, -2, logit_idx]  # -2: answer token, -1: eos token
 
     # metric 계산 함수
     def _compute_metrics(self, evaluation_result):

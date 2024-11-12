@@ -7,8 +7,9 @@ from tqdm import tqdm
 
 
 class Inferencer:
-    def __init__(self, inference_config, model, tokenizer):
-        self.config = inference_config
+    def __init__(self, data_config, inference_config, model, tokenizer):
+        self.data_config = data_config
+        self.inference_config = inference_config
         self.model = model
         self.tokenizer = tokenizer
         self.pred_choices_map = {0: "1", 1: "2", 2: "3", 3: "4", 4: "5"}
@@ -19,7 +20,7 @@ class Inferencer:
         self._save_results(results)
 
     def _prepare_test_dataset(self):
-        test_df = pd.read_csv(self.config["test_path"])
+        test_df = pd.read_csv(self.data_config["test_path"])
         records = []
         for _, row in test_df.iterrows():
             problems = literal_eval(row["problems"])
@@ -59,14 +60,14 @@ class Inferencer:
         return infer_results
 
     def _save_results(self, results):
-        pd.DataFrame(results).to_csv(self.config["output_path"], index=False)
+        pd.DataFrame(results).to_csv(self.inference_config["output_path"], index=False)
 
     def _create_messages(self, row):
         choices_string = "\n".join([f"{idx + 1} - {choice}" for idx, choice in enumerate(row["choices"])])
 
         # <보기>가 있을 때
         if row["question_plus"]:
-            user_message = self.config["prompt_with_question"].format(
+            user_message = self.data_config["prompt"]["with_question"].format(
                 paragraph=row["paragraph"],
                 question=row["question"],
                 question_plus=row["question_plus"],
@@ -74,7 +75,7 @@ class Inferencer:
             )
         # <보기>가 없을 때
         else:
-            user_message = self.config["prompt_no_question"].format(
+            user_message = self.data_config["prompt"]["no_question"].format(
                 paragraph=row["paragraph"],
                 question=row["question"],
                 choices=choices_string,

@@ -1,4 +1,5 @@
 import argparse
+from datetime import datetime
 import os
 import random
 
@@ -6,6 +7,7 @@ from loguru import logger
 import numpy as np
 import torch
 import yaml
+from zoneinfo import ZoneInfo
 
 
 def set_seed(seed=42):
@@ -37,3 +39,17 @@ def set_logger(log_file="../log/file.log", log_level="DEBUG"):
         rotation="12:00",  # 매일 12시에 새로운 로그 파일 생성
         retention="7 days",  # 7일 후 로그 제거
     )
+
+
+def create_experiment_filename():
+    config = load_config()
+    username = config["exp"]["username"]
+    train_path = config["data"]["train_path"]
+    base_model = config["model"]["base_model"].replace("/", "_")
+    num_train_epochs = config["training"]["params"]["num_train_epochs"]
+    learning_rate = config["training"]["params"]["learning_rate"]
+    current_time = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%m%d%H%M")
+
+    train_name = os.path.splitext(os.path.basename(train_path))[0]
+
+    return f"{username}_{base_model}_{train_name}_{num_train_epochs}_{learning_rate}_{current_time}"

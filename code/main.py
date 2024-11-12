@@ -1,5 +1,5 @@
 from data_loaders import DataLoader
-from inference import Inferencer
+from inference import InferenceModel
 from model import ModelHandler
 from trainer import CustomTrainer
 from util import load_config, set_logger, set_seed
@@ -35,7 +35,7 @@ def main():
     trained_model = trainer.train()
 
     # 추론
-    inferencer = Inferencer(
+    inferencer = InferenceModel(
         data_config=config["data"], inference_config=config["inference"], model=trained_model, tokenizer=tokenizer
     )
     inferencer.run_inference()

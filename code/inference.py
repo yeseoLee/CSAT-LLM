@@ -6,7 +6,7 @@ import torch
 from tqdm import tqdm
 
 
-class Inferencer:
+class InferenceModel:
     def __init__(self, data_config, inference_config, model, tokenizer):
         self.data_config = data_config
         self.inference_config = inference_config

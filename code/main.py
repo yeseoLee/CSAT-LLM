@@ -6,13 +6,9 @@ from util import load_config, set_logger, set_seed
 
 
 def main():
-    # 설정 로드
+    # config, log, seed 설정
     config = load_config()
-
-    # 로그 설정
     set_logger(log_file=config["log"]["file"], log_level=config["log"]["level"])
-
-    # 시드 설정
     set_seed()
 
     # 모델 및 토크나이저 설정

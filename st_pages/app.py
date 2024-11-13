@@ -45,9 +45,7 @@ def main():
 
     data, records = load_data("../data/train.csv")
 
-    instance_index = st.number_input(
-        "인스턴스 선택", min_value=0, max_value=len(data) - 1, value=0, step=1
-    )
+    instance_index = st.number_input("인스턴스 선택", min_value=0, max_value=len(data) - 1, value=0, step=1)
 
     st.write(f"선택된 인스턴스 (인덱스 {instance_index}):")
     st.write(data.iloc[instance_index])

@@ -49,7 +49,7 @@ class CustomTrainer:
             num_train_epochs=self.training_config["params"]["num_train_epochs"],
             learning_rate=self.training_config["params"]["learning_rate"],
             weight_decay=self.training_config["params"]["weight_decay"],
-            logging_steps=self.training_config["params"]["logging_steps"],
+            logging_strategy=self.training_config["params"]["logging_strategy"],
             save_strategy=self.training_config["params"]["save_strategy"],
             eval_strategy=self.training_config["params"]["eval_strategy"],
             save_total_limit=self.training_config["params"]["save_total_limit"],

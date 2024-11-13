@@ -33,7 +33,7 @@ training:
     num_train_epochs: 3
     learning_rate: 2.0e-05
     weight_decay: 0.01
-    logging_steps: 1
+    logging_strategy: "epoch"
     save_strategy: "epoch"
     eval_strategy: "epoch"
     save_total_limit: 2

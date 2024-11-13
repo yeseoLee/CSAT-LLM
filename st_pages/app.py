@@ -1,6 +1,7 @@
+from ast import literal_eval
+
 import pandas as pd
 import streamlit as st
-from ast import literal_eval
 
 
 def load_data(file_path):

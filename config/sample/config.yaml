@@ -39,6 +39,7 @@ training:
     save_total_limit: 2
     save_only_model: true
     report_to: "wandb"
+    run_name: "../outputs" # wandb 세팅이 존재한다면 동적으로 생성됩니다.
     output_dir: "../outputs"
     overwrite_output_dir: true
 
@@ -48,7 +49,7 @@ inference:
 
 log:
   file: "../log/file.log"
-  level: "DEBUG"
+  level: "INFO"
 
 wandb:
   project: generation_for_nlp

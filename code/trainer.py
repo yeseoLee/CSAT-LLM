@@ -55,6 +55,7 @@ class CustomTrainer:
             save_total_limit=self.training_config["params"]["save_total_limit"],
             save_only_model=self.training_config["params"]["save_only_model"],
             report_to=self.training_config["params"]["report_to"],
+            run_name=self.training_config["params"]["run_name"],
             output_dir=self.training_config["params"]["output_dir"],
             overwrite_output_dir=self.training_config["params"]["overwrite_output_dir"],
         )

@@ -2,7 +2,13 @@ from data_loaders import DataLoader
 from inference import InferenceModel
 from model import ModelHandler
 from trainer import CustomTrainer
-from util import create_experiment_filename, load_config, set_logger, set_seed
+from util import (
+    create_experiment_filename,
+    load_config,
+    log_config,
+    set_logger,
+    set_seed,
+)
 import wandb
 
 
@@ -10,14 +16,17 @@ def main():
     # config, log, seed 설정
     config = load_config()
     set_logger(log_file=config["log"]["file"], log_level=config["log"]["level"])
+    log_config()
     set_seed()
 
     # wandb 설정
+    exp_name = create_experiment_filename(config)
+    config["training"]["run_name"] = exp_name
     wandb.init(
         config=config,
         project=config["wandb"]["project"],
         entity=config["wandb"]["entity"],
-        name=create_experiment_filename(),
+        name=exp_name,
     )
 
     # 모델 및 토크나이저 설정
@@ -41,7 +50,10 @@ def main():
 
     # 추론
     inferencer = InferenceModel(
-        data_config=config["data"], inference_config=config["inference"], model=trained_model, tokenizer=tokenizer
+        data_config=config["data"],
+        inference_config=config["inference"],
+        model=trained_model,
+        tokenizer=tokenizer,
     )
     inferencer.run_inference()
 

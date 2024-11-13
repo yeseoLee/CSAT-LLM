@@ -48,18 +48,39 @@ def create_csat_style_pdf(data, filename):
             # 문제 출력
             problem_data = ast.literal_eval(row["problems"])
             question = problem_data["question"]
-            draw_wrapped_text(c, f"문제: {question}", 1 * cm, height - 16 * cm, max_width=85, max_height=8 * cm)
+            draw_wrapped_text(
+                c,
+                f"문제: {question}",
+                1 * cm,
+                height - 16 * cm,
+                max_width=85,
+                max_height=8 * cm,
+            )
 
             # 선택지 출력
             choices = problem_data["choices"]
             choice_y = height - 19 * cm
             for i, choice in enumerate(choices, 1):
-                draw_wrapped_text(c, f"{i}. {choice}", 1 * cm, choice_y, max_width=85, max_height=3 * cm)
+                draw_wrapped_text(
+                    c,
+                    f"{i}. {choice}",
+                    1 * cm,
+                    choice_y,
+                    max_width=85,
+                    max_height=3 * cm,
+                )
                 choice_y -= 1.2 * cm
 
             # 정답 표시
             answer = problem_data["answer"]
-            draw_wrapped_text(c, f"정답: {answer}", 1 * cm, choice_y - 1 * cm, max_width=85, max_height=3 * cm)
+            draw_wrapped_text(
+                c,
+                f"정답: {answer}",
+                1 * cm,
+                choice_y - 1 * cm,
+                max_width=85,
+                max_height=3 * cm,
+            )
 
             c.showPage()
         except KeyError as ke:
@@ -72,7 +93,11 @@ def create_csat_style_pdf(data, filename):
 if __name__ == "__main__":
     # 인자 파서 설정
     parser = argparse.ArgumentParser(description="Generate a CSAT style PDF from CSV data.")
-    parser.add_argument("--csv_path", default="../data/train.csv", help="Path to the CSV file containing the data.")
+    parser.add_argument(
+        "--csv_path",
+        default="../data/train.csv",
+        help="Path to the CSV file containing the data.",
+    )
     args = parser.parse_args()
 
     # CSV 파일 읽기 및 컬럼 확인
@@ -90,9 +115,12 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # 한글 폰트 등록
-    font_path = os.path.abspath("NanumGothic.ttf")
+    font_path = os.path.abspath("../data/NanumGothic.ttf")
     if not os.path.isfile(font_path):
-        print(f"폰트 파일을 찾을 수 없습니다: {font_path}")
+        print(
+            f"폰트 파일을 찾을 수 없습니다: {font_path}"
+            f"https://hangeul.naver.com/fonts/search?f=nanum 에서 폰트를 다운받아 data폴더에 넣어주세요."
+        )
         sys.exit(1)
 
     pdfmetrics.registerFont(TTFont("NanumGothic", font_path))

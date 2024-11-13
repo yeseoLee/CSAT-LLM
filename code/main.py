@@ -16,7 +16,7 @@ def main():
     # config, log, seed 설정
     config = load_config()
     set_logger(log_file=config["log"]["file"], log_level=config["log"]["level"])
-    log_config()
+    log_config(config)
     set_seed()
 
     # wandb 설정

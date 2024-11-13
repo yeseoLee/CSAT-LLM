@@ -42,7 +42,7 @@ def set_logger(log_file="../log/file.log", log_level="DEBUG"):
 
 
 # config 확인
-def log_config(config, depth=0):
+def log_config(config=load_config(), depth=0):
     if depth == 0:
         logger.info("*" * 40)
     for k, v in config.items():

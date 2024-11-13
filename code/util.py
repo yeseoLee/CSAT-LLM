@@ -44,18 +44,18 @@ def set_logger(log_file="../log/file.log", log_level="DEBUG"):
 # config 확인
 def log_config(config=load_config(), depth=0):
     if depth == 0:
-        logger.info("*" * 40)
+        print("*" * 40)
     for k, v in config.items():
         prefix = ["\t" * depth, k, ":"]
 
         if isinstance(v, dict):
-            logger.info(*prefix)
+            print(*prefix)
             log_config(v, depth + 1)
         else:
             prefix.append(v)
-            logger.info(*prefix)
+            print(*prefix)
     if depth == 0:
-        logger.info("*" * 40)
+        print("*" * 40)
 
 
 def create_experiment_filename(config=load_config()):

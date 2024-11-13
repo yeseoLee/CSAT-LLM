@@ -13,7 +13,6 @@ class CustomTrainer:
         self.eval_dataset = eval_dataset
         self.training_config = training_config
         self.acc_metric = evaluate.load("accuracy")
-        self.response_template = "<start_of_turn>model"
         self.int_output_map = {"1": 0, "2": 1, "3": 2, "4": 3, "5": 4}
 
     def train(self):
@@ -24,7 +23,7 @@ class CustomTrainer:
     def _setup_trainer(self):
         # 데이터 콜레이터 설정
         data_collator = DataCollatorForCompletionOnlyLM(
-            response_template=self.response_template,
+            response_template=self.training_config["response_template"],
             tokenizer=self.tokenizer,
         )
 

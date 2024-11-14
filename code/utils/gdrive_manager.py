@@ -9,8 +9,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from loguru import logger
 import pandas as pd
-
-from .util import load_env_file
+from util import load_env_file
 
 
 SCOPES = [

@@ -59,7 +59,7 @@ def set_logger(log_file="../log/file.log", log_level="DEBUG"):
 
 
 # config 확인
-def log_config(config=load_config(), depth=0):
+def log_config(config, depth=0):
     if depth == 0:
         print("*" * 40)
     for k, v in config.items():
@@ -82,7 +82,9 @@ def get_current_time():
     return CURRENT_TIME
 
 
-def create_experiment_filename(config=load_config()):
+def create_experiment_filename(config):
+    if config is None:
+        config = load_config()
     username = config["exp"]["username"]
     base_model = config["model"]["base_model"].replace("/", "_")
     train_path = config["data"]["train_path"]

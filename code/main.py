@@ -1,3 +1,5 @@
+import os
+
 from data_loaders import DataLoader
 from inference import InferenceModel
 from loguru import logger
@@ -23,13 +25,17 @@ def main():
 
     # wandb 설정
     exp_name = create_experiment_filename(config)
-    config["training"]["run_name"] = exp_name
-
     wandb.init(
         config=config,
         project=config["wandb"]["project"],
         entity=config["wandb"]["entity"],
         name=exp_name,
+    )
+
+    # wandb 실험명으로 config 갱신
+    config["training"]["run_name"] = exp_name
+    config["inference_config"]["output_path"] = os.path.join(
+        config["inference"]["output_path"], exp_name + "_output.csv"
     )
 
     try:
@@ -59,7 +65,7 @@ def main():
             model=trained_model,
             tokenizer=tokenizer,
         )
-        output_filename = inferencer.run_inference()
+        inferencer.run_inference()
 
     except Exception as e:
         logger.info(f"Error occurred: {e}")
@@ -67,7 +73,7 @@ def main():
     else:
         logger.info("Upload output to GDrive...")
         gdrive_manager = GoogleDriveManager()
-        gdrive_manager.upload_output_csv(config["exp"]["username"], output_filename)
+        gdrive_manager.upload_output_csv(config["exp"]["username"], config["inference_config"]["output_path"])
         wandb.finish()
 
 

@@ -1,6 +1,8 @@
 from ast import literal_eval
+
 import pandas as pd
 import streamlit as st
+
 
 def load_data(file_path):
     data = pd.read_csv(file_path)
@@ -70,7 +72,7 @@ def main():
 
     # Before Split에서 suggested_label이 1인 행 필터링
     before_split_label_1 = before_split[before_split['suggested_label'] == 1]
-    
+
     # After Split에서 suggested_label이 1인 행 필터링
     after_split_label_1 = after_split[after_split['suggested_label'] == 0]
 

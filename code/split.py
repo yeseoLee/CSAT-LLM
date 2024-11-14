@@ -1,5 +1,7 @@
-import pandas as pd
 from ast import literal_eval
+
+import pandas as pd
+
 
 def load_data(file_path):
     data = pd.read_csv(file_path)
@@ -24,17 +26,17 @@ def classify_questions(records):
     for record in records:
         question = record['question']
         paragraph = record['paragraph']
-        
+
         # 사회 영역 판단
         contains_social_keywords = any(keyword in question for keyword in social_keywords)
 
         # 각 선택지가 본문에 포함되어 있는지 확인
         choices_found_in_paragraph = {choice: choice in paragraph for choice in record['choices']}
-        
+
         # 정답이 포함된 선택지 찾기
         answer_index = record['answer']
         answer_found_in_paragraph = False
-        
+
         if answer_index is not None and 0 <= answer_index < len(record['choices']):
             answer = record['choices'][answer_index]  # 정답 선택지
             answer_found_in_paragraph = choices_found_in_paragraph.get(answer, False)
@@ -47,7 +49,7 @@ def classify_questions(records):
             classification = '국어'
         else:
             classification = '불확실'  # 두 조건 모두 해당하지 않거나 모두 해당하는 경우
-        
+
         classifications.append({
             'id': record['id'],
             'classification': classification,
@@ -61,7 +63,7 @@ def classify_questions(records):
 def main():
     file_path = "../data/train.csv"  # 파일 경로 설정
     data, records = load_data(file_path)
-    
+
     classifications = classify_questions(records)
 
     # 결과를 데이터프레임으로 변환

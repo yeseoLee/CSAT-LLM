@@ -1,25 +1,32 @@
-import argparse
 import os
 
 from datasets import load_dataset
 from huggingface_hub import HfApi
 from loguru import logger
-from transformers import AutoModelForCausalLM, AutoTokenizer
-
-from .util import load_env_file
+from peft import AutoPeftModelForCausalLM
+from transformers import AutoTokenizer
+from util import load_env_file
 
 
 class HuggingFaceHubManager:
-    def __init__(self):
-        load_env_file("../config/.env")
+    def __init__(self, env_path="../config/.env"):
+        load_env_file(env_path)
         self.token = os.getenv("HF_TOKEN")
         self.organization = os.getenv("HF_TEAM_NAME")
         self.project_name = os.getenv("HF_PROJECT_NAME")
 
+        # 환경 변수 검증 추가
+        if not all([self.token, self.organization, self.project_name]):
+            raise ValueError("필수 환경 변수가 설정되지 않았습니다.")
+
     def upload_model(self, model_name, username, checkpoint_path):
         repo_id = f"{model_name}-{username}"
         try:
-            model = AutoModelForCausalLM.from_pretrained(checkpoint_path, trust_remote_code=True)
+            model = AutoPeftModelForCausalLM.from_pretrained(
+                checkpoint_path,
+                trust_remote_code=True,
+                device_map="auto",
+            )
             tokenizer = AutoTokenizer.from_pretrained(checkpoint_path, trust_remote_code=True)
 
             model.push_to_hub(repo_id=repo_id, organization=self.organization, use_auth_token=self.token)
@@ -65,12 +72,10 @@ class HuggingFaceHubManager:
 
 
 if "__main__" == __name__:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--checkpoint_path", type=str, default="./outputs/your_path")
-    parser.add_argument("--modelname", type=str, default="your-modelname")
-    parser.add_argument("--dataname", type=str, default="your-dataname")
-    parser.add_argument("--username", type=str, default="your-username")
+    env_path = "../../config/.env"
+    load_env_file(env_path)
+    logger.debug(f'{os.getenv("UPLOAD_MODEL_NAME")}, {os.getenv("USERNAME")}, {os.getenv("CHECKPOINT_PATH")}')
 
-    hf_manager = HuggingFaceHubManager()
-    hf_manager.upload_model(parser.modelname, parser.username, parser.checkpoint_path)
-    # hf_manager.upload_dataset(parser.dataname, private=True)
+    hf_manager = HuggingFaceHubManager(env_path)
+    hf_manager.upload_model(os.getenv("UPLOAD_MODEL_NAME"), os.getenv("USERNAME"), os.getenv("CHECKPOINT_PATH"))
+    # hf_manager.upload_dataset(args.dataname, private=True)

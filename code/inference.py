@@ -6,8 +6,7 @@ import numpy as np
 import pandas as pd
 import torch
 from tqdm import tqdm
-
-from .utils import create_experiment_filename
+from utils import create_experiment_filename
 
 
 class InferenceModel:

@@ -3,9 +3,7 @@ from inference import InferenceModel
 from loguru import logger
 from model import ModelHandler
 from trainer import CustomTrainer
-import wandb
-
-from .utils import (
+from utils import (
     GoogleDriveManager,
     create_experiment_filename,
     load_config,
@@ -13,6 +11,7 @@ from .utils import (
     set_logger,
     set_seed,
 )
+import wandb
 
 
 def main():

@@ -1,11 +1,13 @@
 from ast import literal_eval
 import os
 
+from loguru import logger
 import numpy as np
 import pandas as pd
 import torch
 from tqdm import tqdm
-from util import create_experiment_filename
+
+from .utils import create_experiment_filename
 
 
 class InferenceModel:
@@ -19,7 +21,7 @@ class InferenceModel:
     def run_inference(self):
         test_dataset = self._prepare_test_dataset()
         results = self._inference(test_dataset)
-        self._save_results(results)
+        return self._save_results(results)
 
     def _prepare_test_dataset(self):
         test_df = pd.read_csv(self.data_config["test_path"])
@@ -63,9 +65,10 @@ class InferenceModel:
 
     def _save_results(self, results):
         filename = create_experiment_filename() + "_output.csv"
-        print(self.inference_config["output_path"])
+        logger.info(self.inference_config["output_path"])
         output_filename = os.path.join(self.inference_config["output_path"], filename)
         pd.DataFrame(results).to_csv(output_filename, index=False)
+        return output_filename
 
     def _create_messages(self, row):
         choices_string = "\n".join([f"{idx + 1} - {choice}" for idx, choice in enumerate(row["choices"])])

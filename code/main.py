@@ -3,14 +3,16 @@ from inference import InferenceModel
 from loguru import logger
 from model import ModelHandler
 from trainer import CustomTrainer
-from util import (
+import wandb
+
+from .utils import (
+    GoogleDriveManager,
     create_experiment_filename,
     load_config,
     log_config,
     set_logger,
     set_seed,
 )
-import wandb
 
 
 def main():
@@ -24,14 +26,14 @@ def main():
     exp_name = create_experiment_filename(config)
     config["training"]["run_name"] = exp_name
 
-    try:
-        wandb.init(
-            config=config,
-            project=config["wandb"]["project"],
-            entity=config["wandb"]["entity"],
-            name=exp_name,
-        )
+    wandb.init(
+        config=config,
+        project=config["wandb"]["project"],
+        entity=config["wandb"]["entity"],
+        name=exp_name,
+    )
 
+    try:
         # 모델 및 토크나이저 설정
         model_handler = ModelHandler(config["model"])
         model, tokenizer = model_handler.setup()
@@ -58,13 +60,16 @@ def main():
             model=trained_model,
             tokenizer=tokenizer,
         )
-        inferencer.run_inference()
-
-        wandb.finish()
+        output_filename = inferencer.run_inference()
 
     except Exception as e:
         logger.info(f"Error occurred: {e}")
         wandb.finish(exit_code=1)
+    else:
+        logger.info("Upload output to GDrive...")
+        gdrive_manager = GoogleDriveManager()
+        gdrive_manager.upload_output_csv(config["exp"]["username"], output_filename)
+        wandb.finish()
 
 
 if __name__ == "__main__":

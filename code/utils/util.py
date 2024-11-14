@@ -3,11 +3,15 @@ from datetime import datetime
 import os
 import random
 
+from dotenv import load_dotenv
 from loguru import logger
 import numpy as np
 import torch
 import yaml
 from zoneinfo import ZoneInfo
+
+
+CURRENT_TIME = None
 
 
 def set_seed(seed=42):
@@ -28,6 +32,19 @@ def load_config():
     with open(os.path.join("../config", args.config), encoding="utf-8") as f:
         config = yaml.safe_load(f)
     return config
+
+
+def load_env_file(filepath=".env"):
+    try:
+        # .env 파일 로드 시도
+        if load_dotenv(filepath):
+            logger.debug(f".env 파일을 성공적으로 로드했습니다: {filepath}")
+        else:
+            raise FileNotFoundError  # 파일이 없으면 예외 발생
+    except FileNotFoundError:
+        logger.debug(f"경고: 지정된 .env 파일을 찾을 수 없습니다: {filepath}")
+    except Exception as e:
+        logger.debug(f"오류 발생: .env 파일 로드 중 예외가 발생했습니다: {e}")
 
 
 def set_logger(log_file="../log/file.log", log_level="DEBUG"):
@@ -58,6 +75,13 @@ def log_config(config=load_config(), depth=0):
         print("*" * 40)
 
 
+def get_current_time():
+    global CURRENT_TIME
+    if CURRENT_TIME is None:
+        CURRENT_TIME = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%m%d%H%M")
+    return CURRENT_TIME
+
+
 def create_experiment_filename(config=load_config()):
     username = config["exp"]["username"]
     base_model = config["model"]["base_model"].replace("/", "_")
@@ -65,6 +89,6 @@ def create_experiment_filename(config=load_config()):
     train_name = os.path.splitext(os.path.basename(train_path))[0]
     num_train_epochs = config["training"]["params"]["num_train_epochs"]
     learning_rate = config["training"]["params"]["learning_rate"]
-    current_time = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%m%d%H%M")
+    current_time = get_current_time()
 
     return f"{username}_{base_model}_{train_name}_{num_train_epochs}_{learning_rate}_{current_time}"

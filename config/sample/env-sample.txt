@@ -1,0 +1,8 @@
+# .env로 변환하여 사용
+HF_TOKEN=""
+HF_TEAM_NAME = "paper-company"
+HF_PROJECT_NAME = "KSAT"
+
+GDRIVE_TOKEN="../config/token.json"
+GDRIVE_CREDENTIALS="../config/credentials.json"
+GDRIVE_FOLDER_ID =""

@@ -2,23 +2,31 @@
 # Ubuntu 20.04.6
 # python 3.10.13
 
-ipykernel==6.29.5
-ipywidgets==8.1.5
+# Deep Learning
+evaluate==0.4.3
+huggingface-hub==0.26.2
+peft==0.13.2
+scikit-learn==1.5.2
 torch==2.5.1 # 2.5.1+cu124
 tqdm==4.67.0
 transformers==4.46.2
 trl==0.12.0
-scikit-learn==1.5.2
-matplotlib==3.9.2
-evaluate==0.4.3
-peft==0.13.2
-huggingface-hub==0.26.2
-loguru==0.7.2
 wandb==0.18.5
+
+# Utils
+ipykernel==6.29.5
+ipywidgets==8.1.5
+loguru==0.7.2
+matplotlib==3.9.2
 reportlab==4.2.5
 streamlit==1.40.1
 
-## Automatically installed dependencies
+# Google Drive API
+google-api-python-client==2.151.0
+google-auth-httplib2==0.2.0
+google-auth-oauthlib==1.2.1
+
+# Automatically installed dependencies
 # pandas==2.2.3
 # numpy==2.1.3
 # pyarrow==18.0.0

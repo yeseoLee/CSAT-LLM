@@ -31,7 +31,7 @@ class HuggingFaceHubManager:
 
             model.push_to_hub(repo_id=repo_id, organization=self.organization, use_auth_token=self.token)
             tokenizer.push_to_hub(repo_id=repo_id, organization=self.organization, use_auth_token=self.token)
-            logger.debug(f"your model pushed successfully in {self.repo_id}, hugging face")
+            logger.debug(f"your model pushed successfully in {repo_id}, hugging face")
         except Exception as e:
             logger.debug(f"An error occurred while uploading to Hugging Face: {e}")
 

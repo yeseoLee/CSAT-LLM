@@ -1,4 +1,5 @@
 import io
+import json
 import os.path
 
 from google.auth.transport.requests import Request
@@ -21,10 +22,11 @@ SCOPES = [
 class GoogleDriveManager:
     def __init__(self):
         load_env_file("../config/.env")
-        self.service = self.get_drive_service()
         self.root_folder_id = os.getenv("GDRIVE_FOLDER_ID")
         self.credentials = os.getenv("GDRIVE_CREDENTIALS")
         self.token = os.getenv("GDRIVE_TOKEN")
+        self.is_create_token = os.getenv("GDRIVE_CREATE_TOKEN")
+        self.service = self.get_drive_service()
 
     def get_drive_service(self):
         creds = None
@@ -34,13 +36,25 @@ class GoogleDriveManager:
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
+            elif self.is_create_token == "true":
+                flow = InstalledAppFlow.from_client_secrets_file(self.credentials, scopes=SCOPES)
+                creds = flow.run_local_server(port=0, open_browser=False)
+                # 리프레시 토큰 저장
+                with open(self.token, "w") as token_file:
+                    token_data = {
+                        "refresh_token": creds.refresh_token,
+                        "token": creds.token,
+                        "token_uri": creds.token_uri,
+                        "client_id": creds.client_id,
+                        "client_secret": creds.client_secret,
+                        "scopes": creds.scopes,
+                    }
+                    json.dump(token_data, token_file)
+                    logger.info("구글 드라이브 토큰이 갱신되었습니다.")
             else:
-                flow = InstalledAppFlow.from_client_secrets_file(self.credentials, SCOPES)
-                creds = flow.run_local_server(port=0)
-
+                logger.error("구글 드라이브 업로드 실패. 토큰을 갱신을 요청하세요.")
             with open(self.token, "w") as token:
                 token.write(creds.to_json())
-
         return build("drive", "v3", credentials=creds)
 
     def find_folder_id_by_name(self, folder_name, parent_folder_id=None):

@@ -72,10 +72,10 @@ class HuggingFaceHubManager:
 
 
 if "__main__" == __name__:
-    env_path = "../../config/.env"
-    load_env_file(env_path)
+    os.chdir("..")
+    load_env_file()
     logger.debug(f'{os.getenv("UPLOAD_MODEL_NAME")}, {os.getenv("USERNAME")}, {os.getenv("CHECKPOINT_PATH")}')
 
-    hf_manager = HuggingFaceHubManager(env_path)
+    hf_manager = HuggingFaceHubManager()
     hf_manager.upload_model(os.getenv("UPLOAD_MODEL_NAME"), os.getenv("USERNAME"), os.getenv("CHECKPOINT_PATH"))
     # hf_manager.upload_dataset(args.dataname, private=True)

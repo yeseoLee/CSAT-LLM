@@ -19,8 +19,8 @@ SCOPES = [
 
 
 class GoogleDriveManager:
-    def __init__(self):
-        load_env_file("../config/.env")
+    def __init__(self, env_path="../config/.env"):
+        load_env_file(env_path)
         self.root_folder_id = os.getenv("GDRIVE_FOLDER_ID")
         self.credentials = os.getenv("GDRIVE_CREDENTIALS")
         self.token = os.getenv("GDRIVE_TOKEN")
@@ -91,6 +91,28 @@ class GoogleDriveManager:
             logger.info(f"폴더 검색 중 오류 발생: {str(e)}")
             return None
 
+    def list_folder_files(self, folder_id=None):
+        """폴더 내 파일 목록 조회"""
+        if not folder_id:
+            folder_id = self.root_folder_id
+        query = f"'{folder_id}' in parents and trashed=false"
+
+        try:
+            results = (
+                self.service.files()
+                .list(
+                    q=query,
+                    pageSize=100,
+                    fields="nextPageToken, files(id, name, mimeType, modifiedTime, size)",
+                )
+                .execute()
+            )
+
+            return results.get("files", [])
+        except Exception as e:
+            print(f"Error listing files: {str(e)}")
+            return []
+
     def upload_json_data(self, json_string, filename, folder_id=None):
         """직렬화된 JSON string 직접 업로드"""
         try:
@@ -150,6 +172,7 @@ class GoogleDriveManager:
 
 
 if __name__ == "__main__":
+    os.chdir("..")
     drive_manager = GoogleDriveManager()
     # 파일 목록 조회
     files = drive_manager.list_folder_files()

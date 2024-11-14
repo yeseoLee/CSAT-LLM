@@ -1,3 +1,4 @@
+import argparse
 import os
 
 from datasets import load_dataset
@@ -64,7 +65,12 @@ class HuggingFaceHubManager:
 
 
 if "__main__" == __name__:
-    # 업로드할 파일명 지정
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--checkpoint_path", type=str, default="./outputs/your_path")
+    parser.add_argument("--modelname", type=str, default="your-modelname")
+    parser.add_argument("--dataname", type=str, default="your-dataname")
+    parser.add_argument("--username", type=str, default="your-username")
+
     hf_manager = HuggingFaceHubManager()
-    hf_manager.upload_model("model_name", "username", "checkpoint_path")
-    hf_manager.upload_dataset("file_name", private=True)
+    hf_manager.upload_model(parser.modelname, parser.username, parser.checkpoint_path)
+    # hf_manager.upload_dataset(parser.dataname, private=True)

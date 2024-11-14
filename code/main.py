@@ -25,7 +25,7 @@ def main():
     config["training"]["run_name"] = exp_name
 
     try:
-        run = wandb.init(
+        wandb.init(
             config=config,
             project=config["wandb"]["project"],
             entity=config["wandb"]["entity"],
@@ -60,14 +60,11 @@ def main():
         )
         inferencer.run_inference()
 
-        run.finish()
+        wandb.finish()
 
     except Exception as e:
         logger.info(f"Error occurred: {e}")
-        for artifact in run.logged_artifacts():
-            if artifact.type != "wandb-history":  # 시스템 관리 아티팩트 제외
-                artifact.delete()[2]
-        run.finish(exit_code=1)
+        wandb.finish(exit_code=1)
 
 
 if __name__ == "__main__":

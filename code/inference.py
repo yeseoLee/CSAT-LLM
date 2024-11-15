@@ -16,6 +16,8 @@ class InferenceModel:
         self.pred_choices_map = {0: "1", 1: "2", 2: "3", 3: "4", 4: "5"}
 
     def run_inference(self):
+        if not self.data_config["do_test"]:
+            return
         test_dataset = self._prepare_test_dataset()
         results = self._inference(test_dataset)
         return self._save_results(results)

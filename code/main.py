@@ -9,6 +9,7 @@ from utils import (
     GoogleDriveManager,
     create_experiment_filename,
     load_config,
+    load_env_file,
     log_config,
     set_logger,
     set_seed,
@@ -17,7 +18,8 @@ import wandb
 
 
 def main():
-    # config, log, seed 설정
+    # env, config, log, seed 설정
+    load_env_file()
     config = load_config()
     set_logger(log_file=config["log"]["file"], log_level=config["log"]["level"])
     log_config(config)
@@ -34,9 +36,7 @@ def main():
 
     # wandb 실험명으로 config 갱신
     config["training"]["run_name"] = exp_name
-    config["inference_config"]["output_path"] = os.path.join(
-        config["inference"]["output_path"], exp_name + "_output.csv"
-    )
+    config["inference"]["output_path"] = os.path.join(config["inference"]["output_path"], exp_name + "_output.csv")
 
     try:
         # 모델 및 토크나이저 설정
@@ -71,7 +71,7 @@ def main():
         logger.info(f"Error occurred: {e}")
         wandb.finish(exit_code=1)
     else:
-        logger.info("Upload output to GDrive...")
+        logger.info("Upload output & config to GDrive...")
         gdrive_manager = GoogleDriveManager()
         gdrive_manager.upload_output_csv(config["exp"]["username"], config["inference_config"]["output_path"])
         wandb.finish()

@@ -2,6 +2,7 @@ import io
 import json
 import os.path
 
+from dotenv import load_dotenv
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -9,7 +10,6 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from loguru import logger
 import pandas as pd
-from util import load_env_file
 
 
 SCOPES = [
@@ -19,12 +19,16 @@ SCOPES = [
 
 
 class GoogleDriveManager:
-    def __init__(self, env_path="../config/.env"):
-        load_env_file(env_path)
+    def __init__(self):
         self.root_folder_id = os.getenv("GDRIVE_FOLDER_ID")
         self.credentials = os.getenv("GDRIVE_CREDENTIALS")
         self.token = os.getenv("GDRIVE_TOKEN")
         self.is_create_token = os.getenv("GDRIVE_CREATE_TOKEN")
+
+        # 환경 변수 검증 추가
+        if not all([self.root_folder_id, self.credentials, self.token]):
+            raise ValueError("필수 환경 변수가 설정되지 않았습니다.")
+
         self.service = self.get_drive_service()
 
     def get_drive_service(self):
@@ -159,9 +163,9 @@ class GoogleDriveManager:
             logger.info(f"Error uploading DataFrame: {str(e)}")
             return None
 
-    def upload_output_csv(self, user_name, filepath):
-        df = pd.read_csv(filepath)
-        basename = os.path.basename(filepath)
+    def upload_gdrive(self, user_name, output_path, config_path):
+        df = pd.read_csv(output_path)
+        basename = os.path.basename(output_path)
 
         # 실험자명으로 폴더명 찾기
         folder_id = self.find_folder_id_by_name(user_name)
@@ -173,6 +177,7 @@ class GoogleDriveManager:
 
 if __name__ == "__main__":
     os.chdir("..")
+    load_dotenv("../config/.env")
     drive_manager = GoogleDriveManager()
     # 파일 목록 조회
     files = drive_manager.list_folder_files()

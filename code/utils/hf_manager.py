@@ -1,16 +1,15 @@
 import os
 
 from datasets import load_dataset
+from dotenv import load_dotenv
 from huggingface_hub import HfApi
 from loguru import logger
 from peft import AutoPeftModelForCausalLM
 from transformers import AutoTokenizer
-from util import load_env_file
 
 
 class HuggingFaceHubManager:
-    def __init__(self, env_path="../config/.env"):
-        load_env_file(env_path)
+    def __init__(self):
         self.token = os.getenv("HF_TOKEN")
         self.organization = os.getenv("HF_TEAM_NAME")
         self.project_name = os.getenv("HF_PROJECT_NAME")
@@ -73,7 +72,7 @@ class HuggingFaceHubManager:
 
 if __name__ == "__main__":
     os.chdir("..")
-    load_env_file()
+    load_dotenv("../config/.env")
     logger.debug(f'{os.getenv("UPLOAD_MODEL_NAME")}, {os.getenv("USERNAME")}, {os.getenv("CHECKPOINT_PATH")}')
 
     hf_manager = HuggingFaceHubManager()

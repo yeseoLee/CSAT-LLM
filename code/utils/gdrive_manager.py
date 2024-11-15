@@ -7,7 +7,7 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseUpload
+from googleapiclient.http import MediaFileUpload, MediaIoBaseUpload
 from loguru import logger
 import pandas as pd
 
@@ -117,26 +117,28 @@ class GoogleDriveManager:
             print(f"Error listing files: {str(e)}")
             return []
 
-    def upload_json_data(self, json_string, filename, folder_id=None):
-        """직렬화된 JSON string 직접 업로드"""
+    def upload_yaml_file(self, file_path, filename, folder_id=None):
+        """YAML 파일 경로를 받아서 업로드"""
         try:
-            # 메모리 스트림으로 변환
-            file_stream = io.BytesIO(json_string.encode("utf-8"))
-
             # 파일 메타데이터 설정
-            file_metadata = {"name": filename, "mimeType": "application/json"}
+            file_metadata = {"name": filename, "mimeType": "application/x-yaml"}
             if folder_id:
                 file_metadata["parents"] = [folder_id]
 
             # 미디어 객체 생성
-            media = MediaIoBaseUpload(file_stream, mimetype="application/json", resumable=True)
+            media = MediaFileUpload(file_path, mimetype="application/x-yaml", resumable=True)
 
             # 파일 업로드
             file = self.service.files().create(body=file_metadata, media_body=media, fields="id, name").execute()
+
+            logger.debug(f"Successfully uploaded {filename} to Google Drive")
             return file
 
+        except FileNotFoundError:
+            logger.error(f"File not found: {file_path}")
+            return None
         except Exception as e:
-            logger.info(f"Error uploading JSON data: {str(e)}")
+            logger.error(f"Error uploading YAML file: {str(e)}")
             return None
 
     def upload_dataframe(self, dataframe, filename, folder_id=None):
@@ -160,16 +162,17 @@ class GoogleDriveManager:
             return file
 
         except Exception as e:
-            logger.info(f"Error uploading DataFrame: {str(e)}")
+            logger.error(f"Error uploading DataFrame: {str(e)}")
             return None
 
-    def upload_gdrive(self, user_name, output_path, config_path):
+    def upload_exp(self, user_name, output_path, config_path="../config/config.yaml"):
         df = pd.read_csv(output_path)
         basename = os.path.basename(output_path)
 
         # 실험자명으로 폴더명 찾기
         folder_id = self.find_folder_id_by_name(user_name)
         _ = self.upload_dataframe(df, basename, folder_id)
+        _ = self.upload_yaml_file(config_path, basename, folder_id)
 
         gdrive_url = os.path.join("https://drive.google.com/drive/folders", folder_id)
         logger.info(f"구글 드라이브에 업로드 되었습니다: {gdrive_url}")

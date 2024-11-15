@@ -73,7 +73,10 @@ def main():
     else:
         logger.info("Upload output & config to GDrive...")
         gdrive_manager = GoogleDriveManager()
-        gdrive_manager.upload_output_csv(config["exp"]["username"], config["inference_config"]["output_path"])
+        gdrive_manager.upload_exp(
+            config["exp"]["username"],
+            config["inference_config"]["output_path"],
+        )
         wandb.finish()
 
 

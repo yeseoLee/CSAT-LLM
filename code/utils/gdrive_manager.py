@@ -20,6 +20,9 @@ SCOPES = [
 
 class GoogleDriveManager:
     def __init__(self):
+        config_folder = os.path.join(os.path.dirname(__file__), "..", "..", "config")
+        load_dotenv(os.path.join(config_folder, ".env"))
+        self.config_folder = config_folder
         self.root_folder_id = os.getenv("GDRIVE_FOLDER_ID")
         self.credentials = os.getenv("GDRIVE_CREDENTIALS")
         self.token = os.getenv("GDRIVE_TOKEN")
@@ -27,6 +30,7 @@ class GoogleDriveManager:
 
         # 환경 변수 검증 추가
         if not all([self.root_folder_id, self.credentials, self.token]):
+            logger.error(f"필수 환경 변수가 설정되지 않았습니다. {[self.root_folder_id, self.credentials, self.token]}")
             raise ValueError("필수 환경 변수가 설정되지 않았습니다.")
 
         self.service = self.get_drive_service()
@@ -165,14 +169,18 @@ class GoogleDriveManager:
             logger.error(f"Error uploading DataFrame: {str(e)}")
             return None
 
-    def upload_exp(self, user_name, output_path, config_path="../config/config.yaml"):
+    def upload_exp(self, user_name, output_path, config_path=None):
         df = pd.read_csv(output_path)
-        basename = os.path.basename(output_path)
+        df_basename = os.path.basename(output_path)
+
+        if config_path is None:
+            config_path = os.path.join(self.config_folder, "config.yaml")
+        config_basename = df_basename.replace("output.csv", "config.yaml")
 
         # 실험자명으로 폴더명 찾기
         folder_id = self.find_folder_id_by_name(user_name)
-        _ = self.upload_dataframe(df, basename, folder_id)
-        _ = self.upload_yaml_file(config_path, basename, folder_id)
+        _ = self.upload_dataframe(df, df_basename, folder_id)
+        _ = self.upload_yaml_file(config_path, config_basename, folder_id)
 
         gdrive_url = os.path.join("https://drive.google.com/drive/folders", folder_id)
         logger.info(f"구글 드라이브에 업로드 되었습니다: {gdrive_url}")

@@ -10,6 +10,7 @@ from transformers import AutoTokenizer
 
 class HuggingFaceHubManager:
     def __init__(self):
+        load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", "config", ".env"))
         self.token = os.getenv("HF_TOKEN")
         self.organization = os.getenv("HF_TEAM_NAME")
         self.project_name = os.getenv("HF_PROJECT_NAME")

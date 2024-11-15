@@ -75,7 +75,7 @@ def main():
         gdrive_manager = GoogleDriveManager()
         gdrive_manager.upload_exp(
             config["exp"]["username"],
-            config["inference_config"]["output_path"],
+            config["inference"]["output_path"],
         )
         wandb.finish()
 

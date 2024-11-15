@@ -47,6 +47,7 @@ class CustomTrainer:
             per_device_eval_batch_size=self.training_config["params"]["per_device_eval_batch_size"],
             gradient_accumulation_steps=self.training_config["params"]["gradient_accumulation_steps"],
             gradient_checkpointing=self.training_config["params"]["gradient_checkpointing"],
+            max_grad_norm=self.training_config["params"]["max_grad_norm"],
             num_train_epochs=self.training_config["params"]["num_train_epochs"],
             learning_rate=self.training_config["params"]["learning_rate"],
             weight_decay=self.training_config["params"]["weight_decay"],

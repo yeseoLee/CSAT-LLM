@@ -1,5 +1,6 @@
+from loguru import logger
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 
 class ModelHandler:
@@ -14,14 +15,35 @@ class ModelHandler:
         return model, tokenizer
 
     def _load_model(self):
-        model = AutoModelForCausalLM.from_pretrained(
-            self.base_model,
-            trust_remote_code=True,
-            torch_dtype=getattr(torch, self.model_config["torch_dtype"]),
-            low_cpu_mem_usage=self.model_config["low_cpu_mem_usage"],
-            load_in_8bit=self.model_config["load_in_8bit"],
-            load_in_4bit=self.model_config["load_in_4bit"],
-        )
+        torch_dtype = getattr(torch, self.model_config["torch_dtype"])
+        base_kwargs = {"trust_remote_code": True, "low_cpu_mem_usage": self.model_config["low_cpu_mem_usage"]}
+
+        if self.model_config["quantization"] == "BitsAndBytes":
+            bits = self.model_config["bits"]
+            if bits == 8:
+                quantization_config = BitsAndBytesConfig(
+                    load_in_8bit=True,
+                    llm_int8_has_fp16_weight=True,
+                    bnb_8bit_use_double_quant=self.model_config["use_double_quant"],
+                    bnb_8bit_compute_dtype=torch_dtype,
+                )
+            elif bits == 4:
+                quantization_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_use_double_quant=self.model_config["use_double_quant"],
+                    bnb_4bit_compute_dtype=torch_dtype,
+                )
+            else:
+                raise ValueError(f"Unsupported bits value: {bits}")
+
+            base_kwargs["quantization_config"] = quantization_config
+        else:
+            base_kwargs["torch_dtype"] = torch_dtype
+
+        logger.debug(f"base_kwargs: {base_kwargs}")
+        model = AutoModelForCausalLM.from_pretrained(self.base_model, **base_kwargs)
+        model.config.use_cache = self.model_config["use_cache"]
         return model
 
     def _load_tokenizer(self):

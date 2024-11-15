@@ -3,11 +3,15 @@ from datetime import datetime
 import os
 import random
 
+from dotenv import load_dotenv
 from loguru import logger
 import numpy as np
 import torch
 import yaml
 from zoneinfo import ZoneInfo
+
+
+CURRENT_TIME = None
 
 
 def set_seed(seed=42):
@@ -30,6 +34,19 @@ def load_config():
     return config
 
 
+def load_env_file(filepath=".env"):
+    try:
+        # .env 파일 로드 시도
+        if load_dotenv(filepath):
+            logger.debug(f".env 파일을 성공적으로 로드했습니다: {filepath}")
+        else:
+            raise FileNotFoundError  # 파일이 없으면 예외 발생
+    except FileNotFoundError:
+        logger.debug(f"경고: 지정된 .env 파일을 찾을 수 없습니다: {filepath}")
+    except Exception as e:
+        logger.debug(f"오류 발생: .env 파일 로드 중 예외가 발생했습니다: {e}")
+
+
 def set_logger(log_file="../log/file.log", log_level="DEBUG"):
     # 로거 설정
     logger.add(
@@ -42,7 +59,7 @@ def set_logger(log_file="../log/file.log", log_level="DEBUG"):
 
 
 # config 확인
-def log_config(config=load_config(), depth=0):
+def log_config(config, depth=0):
     if depth == 0:
         print("*" * 40)
     for k, v in config.items():
@@ -58,13 +75,22 @@ def log_config(config=load_config(), depth=0):
         print("*" * 40)
 
 
-def create_experiment_filename(config=load_config()):
+def get_current_time():
+    global CURRENT_TIME
+    if CURRENT_TIME is None:
+        CURRENT_TIME = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%m%d%H%M")
+    return CURRENT_TIME
+
+
+def create_experiment_filename(config):
+    if config is None:
+        config = load_config()
     username = config["exp"]["username"]
     base_model = config["model"]["base_model"].replace("/", "_")
     train_path = config["data"]["train_path"]
     train_name = os.path.splitext(os.path.basename(train_path))[0]
     num_train_epochs = config["training"]["params"]["num_train_epochs"]
     learning_rate = config["training"]["params"]["learning_rate"]
-    current_time = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%m%d%H%M")
+    current_time = get_current_time()
 
     return f"{username}_{base_model}_{train_name}_{num_train_epochs}_{learning_rate}_{current_time}"

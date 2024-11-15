@@ -1,11 +1,10 @@
 from ast import literal_eval
-import os
 
+from loguru import logger
 import numpy as np
 import pandas as pd
 import torch
 from tqdm import tqdm
-from util import create_experiment_filename
 
 
 class InferenceModel:
@@ -17,9 +16,11 @@ class InferenceModel:
         self.pred_choices_map = {0: "1", 1: "2", 2: "3", 3: "4", 4: "5"}
 
     def run_inference(self):
+        if not self.inference_config["do_test"]:
+            return
         test_dataset = self._prepare_test_dataset()
         results = self._inference(test_dataset)
-        self._save_results(results)
+        return self._save_results(results)
 
     def _prepare_test_dataset(self):
         test_df = pd.read_csv(self.data_config["test_path"])
@@ -54,7 +55,7 @@ class InferenceModel:
 
                 logits = outputs.logits[:, -1].flatten().cpu()
                 target_logits = [logits[self.tokenizer.vocab[str(i + 1)]] for i in range(len(row["choices"]))]
-                probs = torch.nn.functional.softmax(torch.tensor(target_logits, dtype=torch.float32))
+                probs = torch.nn.functional.softmax(torch.tensor(target_logits, dtype=torch.float32), dim=-1)
                 predict_value = self.pred_choices_map[np.argmax(probs.detach().cpu().numpy())]
 
                 infer_results.append({"id": row["id"], "answer": predict_value})
@@ -62,10 +63,8 @@ class InferenceModel:
         return infer_results
 
     def _save_results(self, results):
-        filename = create_experiment_filename() + "_output.csv"
-        print(self.inference_config["output_path"])
-        output_filename = os.path.join(self.inference_config["output_path"], filename)
-        pd.DataFrame(results).to_csv(output_filename, index=False)
+        logger.info(self.inference_config["output_path"])
+        pd.DataFrame(results).to_csv(self.inference_config["output_path"], index=False)
 
     def _create_messages(self, row):
         choices_string = "\n".join([f"{idx + 1} - {choice}" for idx, choice in enumerate(row["choices"])])

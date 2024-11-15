@@ -55,7 +55,7 @@ class InferenceModel:
 
                 logits = outputs.logits[:, -1].flatten().cpu()
                 target_logits = [logits[self.tokenizer.vocab[str(i + 1)]] for i in range(len(row["choices"]))]
-                probs = torch.nn.functional.softmax(torch.tensor(target_logits, dtype=torch.float32))
+                probs = torch.nn.functional.softmax(torch.tensor(target_logits, dtype=torch.float32), dim=-1)
                 predict_value = self.pred_choices_map[np.argmax(probs.detach().cpu().numpy())]
 
                 infer_results.append({"id": row["id"], "answer": predict_value})

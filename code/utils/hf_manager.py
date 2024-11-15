@@ -71,7 +71,7 @@ class HuggingFaceHubManager:
         logger.debug(f"데이터셋이 '{repo_id}'에 업로드되었습니다.")
 
 
-if "__main__" == __name__:
+if __name__ == "__main__":
     os.chdir("..")
     load_env_file()
     logger.debug(f'{os.getenv("UPLOAD_MODEL_NAME")}, {os.getenv("USERNAME")}, {os.getenv("CHECKPOINT_PATH")}')

@@ -72,7 +72,7 @@ def parse_wiki_dump(file_path: str = "../data/wiki_dump.txt"):
             # 문서 끝
             elif line.startswith("</doc>"):
                 if current_doc.strip():  # 빈 문서가 아닌 경우만 추가
-                    documents.append({"id": doc_id, "title": title, "content": current_doc.strip()})
+                    documents.append({"id": doc_id, "title": title, "text": current_doc.strip()})
             # 문서 내용
             else:
                 current_doc += line

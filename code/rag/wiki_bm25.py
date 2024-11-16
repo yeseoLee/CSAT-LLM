@@ -1,6 +1,8 @@
+from contextlib import contextmanager
 import json
 import os
 import pickle
+import time
 from typing import Dict, List, Optional
 
 from datasets import load_dataset
@@ -8,7 +10,13 @@ from konlpy.tag import Okt
 from loguru import logger
 import numpy as np
 from rank_bm25 import BM25Okapi
-from utils import timer
+
+
+@contextmanager
+def timer(name):
+    t0 = time.time()
+    yield
+    logger.debug(f"[{name}] done in {time.time() - t0:.3f} s")
 
 
 class WikiBM25Retriever:
@@ -56,7 +64,7 @@ class WikiBM25Retriever:
                 raise Exception(f"정의되지 않은 wiki_type: {wiki_type}")
 
             self.titles = [doc["title"] for doc in wiki_docs]
-            self.contents = [doc["content"] for doc in wiki_docs]
+            self.contents = [doc["text"] for doc in wiki_docs]
 
             # BM25 모델 생성
             logger.debug("BM25 모델을 생성합니다...")

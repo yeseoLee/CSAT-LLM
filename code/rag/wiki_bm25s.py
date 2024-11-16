@@ -1,0 +1,142 @@
+import json
+import os
+from typing import Dict, List, Optional
+
+import bm25s
+from datasets import load_dataset
+from konlpy.tag import Okt
+from loguru import logger
+
+
+class WikiBM25Retriever:
+    def __init__(
+        self,
+        tokenize_fn=None,
+        wiki_type: str = "wikipedia",
+        data_path: Optional[str] = "../data/",
+        save_name: str = "wiki_bm25s",
+    ) -> None:
+        tokenize_fn = tokenize_fn if tokenize_fn else lambda x: Okt().morphs(x)
+        self.save_dir = os.path.join(data_path, save_name)
+        os.makedirs(data_path, exist_ok=True)
+
+        # 토크나이저 초기화
+        self.tokenizer = bm25s.tokenization(stemmer=None, stopwords=[], splitter=tokenize_fn)
+
+        self.retriever = None
+        self.titles = []
+        self.contents = []
+
+        # 기존 인덱스가 있으면 로드, 없으면 새로 생성
+        if os.path.exists(self.save_dir):
+            self._load_index()
+        else:
+            self._initialize_retriever(wiki_type)
+
+    def _load_index(self):
+        logger.info("기존 BM25 인덱스를 로드합니다.")
+        self.retriever = bm25s.BM25.load(self.save_dir, load_corpus=True)
+        self.tokenizer.load_vocab(self.save_dir)
+
+    def _initialize_retriever(self, wiki_type):
+        logger.info("새로운 BM25 인덱스를 생성합니다.")
+
+        if wiki_type == "wikipedia":
+            # 위키피디아 데이터셋 로드
+            logger.debug("위키피디아 데이터셋을 불러옵니다...")
+            with open(os.path.join(self.save_dir, "wiki_document.json"), "r", encoding="utf-8") as f:
+                wiki_docs = json.load(f)
+        elif wiki_type == "namuwiki":
+            # 나무위키 데이터셋 로드
+            logger.debug("나무위키 데이터셋을 불러옵니다...")
+            dataset = load_dataset("heegyu/namuwiki-extracted")
+            wiki_docs = dataset["train"]
+
+        self.titles = [doc["title"] for doc in wiki_docs]
+        self.contents = [doc["text"] for doc in wiki_docs]
+
+        # 코퍼스 생성 및 토크나이징
+        corpus = [f"{title}: {content}" for title, content in zip(self.titles, self.contents)]
+        corpus_tokens = [self.tokenizer.tokenize(doc) for doc in corpus]
+
+        # BM25 모델 생성 및 인덱싱
+        logger.debug("BM25 모델을 생성합니다...")
+        self.retriever = bm25s.BM25()
+        self.retriever.index(corpus_tokens)
+
+        # 모델과 토크나이저 저장
+        self.retriever.save(self.save_dir, corpus=corpus)
+        self.tokenizer.save_vocab(self.save_dir)
+        logger.debug("인덱스 생성이 완료되었습니다.")
+
+    def retrieve(self, query: str, top_k: int = 3) -> List[Dict]:
+        """
+        주어진 쿼리에 대해 상위 k개의 문서를 검색합니다.
+        """
+        if not self.retriever:
+            raise Exception("BM25 모델이 초기화되지 않았습니다.")
+
+        # 쿼리 토크나이징
+        query_tokens = self.tokenizer.tokenize(query)
+
+        # 검색 수행
+        results, scores = self.retriever.retrieve(query_tokens, k=top_k)
+
+        # 결과 포매팅
+        formatted_results = []
+        for idx, score in zip(results[0], scores[0]):
+            formatted_results.append({"title": self.titles[idx], "content": self.contents[idx], "score": float(score)})
+        return formatted_results
+
+    def bulk_retrieve(self, queries: List[str], top_k: int = 3) -> List[List[Dict]]:
+        """
+        여러 쿼리에 대해 일괄적으로 검색을 수행합니다.
+        """
+        if not self.retriever:
+            raise Exception("BM25 모델이 초기화되지 않았습니다.")
+
+        # 쿼리 토크나이징
+        query_tokens = [self.tokenizer.tokenize(query) for query in queries]
+
+        # 일괄 검색 수행
+        results, scores = self.retriever.retrieve(query_tokens, k=top_k)
+
+        # 결과 포매팅
+        formatted_results = []
+        for query_results, query_scores in zip(results, scores):
+            query_formatted = []
+            for idx, score in zip(query_results, query_scores):
+                query_formatted.append(
+                    {"title": self.titles[idx], "content": self.contents[idx], "score": float(score)}
+                )
+            formatted_results.append(query_formatted)
+        return formatted_results
+
+
+if __name__ == "__main__":
+    # 검색 엔진 초기화
+    retriever = WikiBM25Retriever(wiki_type="namuwiki")
+
+    # 단일 쿼리 테스트
+    query = "세계수의 미궁"
+    results = retriever.retrieve(query, top_k=3)
+
+    logger.info("\n단일 쿼리 검색 결과:")
+    for i, result in enumerate(results, 1):
+        logger.info(f"\n검색 결과 {i}")
+        logger.info(f"제목: {result['title']}")
+        logger.info(f"점수: {result['score']:.4f}")
+        logger.info(f"내용: {result['content'][:200]}...")
+
+    # 다중 쿼리 테스트
+    queries = ["세계수의 미궁", "인공지능", "대한민국"]
+    bulk_results = retriever.bulk_retrieve(queries, top_k=3)
+
+    logger.info("\n다중 쿼리 검색 결과:")
+    for query_idx, query_results in enumerate(bulk_results):
+        logger.info(f"\n쿼리: {queries[query_idx]}")
+        for i, result in enumerate(query_results, 1):
+            logger.info(f"\n검색 결과 {i}")
+            logger.info(f"제목: {result['title']}")
+            logger.info(f"점수: {result['score']:.4f}")
+            logger.info(f"내용: {result['content'][:200]}...")

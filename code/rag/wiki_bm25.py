@@ -144,7 +144,13 @@ class WikiBM25Retriever:
 
 if __name__ == "__main__":
     os.chdir("..")
-    retriever = WikiBM25Retriever()
+    retriever = WikiBM25Retriever(
+        tokenize_fn=None,
+        wiki_type="namuwiki",
+        data_path="../data/",
+        pickle_filename="namu_bm25.pkl",
+        wiki_filename="",
+    )
 
     query = "세계수의 미궁"
     results = retriever.retrieve(query, top_k=5)

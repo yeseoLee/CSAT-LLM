@@ -13,6 +13,7 @@ import yaml
 from zoneinfo import ZoneInfo
 
 
+# 코드 전역에서 첫 실행 시점의 타임스탬프 동일하게 사용
 CURRENT_TIME = None
 
 

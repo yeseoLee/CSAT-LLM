@@ -17,6 +17,7 @@ wandb==0.18.5
 # RAG
 konlpy==0.6.0
 rank-bm25==0.2.2
+wikiextractor==3.0.6
 
 # Utils
 ipykernel==6.29.5

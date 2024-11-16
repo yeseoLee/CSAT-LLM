@@ -46,6 +46,9 @@ training:
     logging_strategy: "epoch"
     save_strategy: "epoch"
     eval_strategy: "epoch"
+    logging_steps: 500
+    save_steps: 500
+    eval_steps: 500
     save_total_limit: 2
     save_only_model: true
     report_to: "wandb"

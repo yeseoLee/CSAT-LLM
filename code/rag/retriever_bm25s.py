@@ -61,7 +61,7 @@ class WikiBM25sRetriever:
         # BM25 모델 생성
         logger.debug("BM25 모델을 생성합니다...")
         corpus = [f"{title}: {content}" for title, content in zip(self.titles, self.contents)]
-        corpus_tokens = [self.tokenizer.tokenize(doc) for doc in corpus]
+        corpus_tokens = self.tokenizer.tokenize(corpus)
         self.bm25 = bm25s.BM25()
         self.bm25.index(corpus_tokens)
         self.bm25.save(self.save_dir, corpus=corpus)

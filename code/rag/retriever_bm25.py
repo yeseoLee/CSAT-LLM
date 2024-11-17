@@ -8,7 +8,17 @@ from konlpy.tag import Okt
 from loguru import logger
 import numpy as np
 from rank_bm25 import BM25Okapi
-from transformers import AutoTokenizer
+
+
+okt = Okt()
+
+
+def okt_specific_pos_tokenizer(text, stem=True, norm=True):
+    # pos 태깅 수행
+    pos_tagged = okt.pos(text, stem=stem, norm=norm)
+    # 명사(Noun), 형용사(Adjective), 동사(Verb)만 필터링
+    filtered_words = [word for word, pos in pos_tagged if pos in ["Noun", "Adjective", "Verb"]]
+    return filtered_words
 
 
 class BM25Retriever:
@@ -20,20 +30,21 @@ class BM25Retriever:
         pickle_filename: str = "wiki_bm25.pkl",
         doc_filename: Optional[str] = "wiki_document.json",
     ) -> None:
-        self.tokenize_fn = tokenize_fn if tokenize_fn else lambda x: Okt().morphs(x)
+        self.tokenize_fn = tokenize_fn if tokenize_fn else okt_specific_pos_tokenizer
         self.pickle_path = os.path.join(data_path, pickle_filename)
-
         self.bm25 = None
         self.corpus = []
+
+        # 데이터셋 로드
+        self._load_dataset(doc_type, os.path.join(data_path, doc_filename))
 
         # 기존 인덱스 로드
         if os.path.exists(self.pickle_path):
             self._load_pickle()
             return
 
-        # 데이터셋 로드 및 인덱스 생성
-        self._load_dataset(doc_type, os.path.join(data_path, doc_filename))
-        self._initialize_retriever(doc_type, os.path.join(data_path, doc_filename))
+        # 인덱스 생성
+        self._initialize_retriever()
 
     def _load_dataset(self, doc_type, json_path):
         if doc_type == "wikipedia":
@@ -53,7 +64,6 @@ class BM25Retriever:
         with open(self.pickle_path, "rb") as f:
             data = pickle.load(f)
             self.bm25 = data["bm25"]
-            self.corpus = data["corpus"]
 
     def _initialize_retriever(self):
         logger.debug("새로운 BM25 인덱스 생성")
@@ -65,7 +75,6 @@ class BM25Retriever:
             pickle.dump(
                 {
                     "bm25": self.bm25,
-                    "corpus": self.corpus,
                 },
                 f,
             )
@@ -124,9 +133,9 @@ class BM25Retriever:
 
 if __name__ == "__main__":
     os.chdir("..")
-    tokenizer = AutoTokenizer.from_pretrained("klue/bert-base")
+    # tokenizer = AutoTokenizer.from_pretrained("klue/bert-base")
     retriever = BM25Retriever(
-        tokenize_fn=tokenizer.tokenize,
+        # tokenize_fn=tokenizer.tokenize,
         doc_type="wikipedia",
         data_path="../data/",
         pickle_filename="wiki_bm25.pkl",

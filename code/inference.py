@@ -5,11 +5,11 @@ from tqdm import tqdm
 
 
 class InferenceModel:
-    def __init__(self, inference_config, test_datset, model, tokenizer):
+    def __init__(self, inference_config, model, tokenizer, test_dataset):
         self.inference_config = inference_config
         self.model = model
         self.tokenizer = tokenizer
-        self.test_dataset = test_datset
+        self.test_dataset = test_dataset
         self.pred_choices_map = {0: "1", 1: "2", 2: "3", 3: "4", 4: "5"}
 
     def run_inference(self):

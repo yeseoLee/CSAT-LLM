@@ -42,6 +42,7 @@ class InferenceModel:
 
     def _inference(self, test_df):
         infer_results = []
+        self.model.config.use_cache = True
         self.model.eval()
 
         with torch.inference_mode():

@@ -4,6 +4,7 @@ from datasets import Dataset
 from loguru import logger
 import numpy as np
 import pandas as pd
+from rag import BM25Retriever
 
 
 class DataLoader:
@@ -22,18 +23,38 @@ class DataLoader:
         tokenized_dataset = self._tokenize_dataset(processed_dataset)
         return self._split_dataset(tokenized_dataset)
 
+    # TODO: config로 인자 분리
+    def _retrieve(self, df):
+        retriever = BM25Retriever(
+            tokenize_fn=self.tokenizer.tokenize,
+            doc_type="wikipedia",
+            data_path="../data/",
+            pickle_filename="wiki_mrc_bm25.pkl",
+            doc_filename="wiki_mrc.json",
+        )
+
+        def combine_text(row):
+            return row["paragraph"] + " " + row["problems"]["question"] + " " + " ".join(row["problems"]["choices"])
+
+        queries = df.apply(combine_text, axis=1)
+        top_k = 2
+        retrive_result = retriever.bulk_retrieve(queries, top_k)
+        return retrive_result["text"]
+
     def _load_data(self, file_path):
         df = pd.read_csv(file_path)
+        df["problems"] = df["problems"].apply(literal_eval)
+        docs = self._retrieve(df)
         records = []
-        for _, row in df.iterrows():
-            problems = literal_eval(row["problems"])
+        for idx, row in df.iterrows():
             record = {
                 "id": row["id"],
                 "paragraph": row["paragraph"],
-                "question": problems["question"],
-                "choices": problems["choices"],
-                "answer": problems.get("answer", None),
-                "question_plus": problems.get("question_plus", None),
+                "question": row["problems"]["question"],
+                "choices": row["problems"]["choices"],
+                "answer": row["problems"].get("answer", None),
+                "question_plus": row["problems"].get("question_plus", None),
+                "doc": docs[idx],
             }
             records.append(record)
         return pd.DataFrame(records)
@@ -49,6 +70,7 @@ class DataLoader:
                     paragraph=dataset[i]["paragraph"],
                     question=dataset[i]["question"],
                     question_plus=dataset[i]["question_plus"],
+                    doc=dataset[i]["doc"],
                     choices=choices_string,
                 )
             # <보기>가 없을 때
@@ -56,6 +78,7 @@ class DataLoader:
                 user_message = self.prompt_no_question.format(
                     paragraph=dataset[i]["paragraph"],
                     question=dataset[i]["question"],
+                    doc=dataset[i]["doc"],
                     choices=choices_string,
                 )
 

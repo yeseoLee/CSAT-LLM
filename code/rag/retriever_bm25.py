@@ -48,11 +48,11 @@ class BM25Retriever:
 
     def _load_dataset(self, doc_type, json_path):
         if doc_type == "wikipedia":
-            logger.debug("위키피디아 데이터셋 로드")
+            logger.info("위키피디아 데이터셋 로드")
             with open(json_path, "r", encoding="utf-8") as f:
                 docs = json.load(f)
         elif doc_type == "namuwiki":
-            logger.debug("나무위키 데이터셋 로드")
+            logger.info("나무위키 데이터셋 로드")
             dataset = load_dataset("heegyu/namuwiki-extracted")
             docs = dataset["train"]
         else:
@@ -60,13 +60,13 @@ class BM25Retriever:
         self.corpus = [f"{doc['title']}: {doc['text']}" for doc in docs]
 
     def _load_pickle(self):
-        logger.debug("기존 BM25 인덱스 로드")
+        logger.info("기존 BM25 인덱스 로드")
         with open(self.pickle_path, "rb") as f:
             data = pickle.load(f)
             self.bm25 = data["bm25"]
 
     def _initialize_retriever(self):
-        logger.debug("새로운 BM25 인덱스 생성")
+        logger.info("새로운 BM25 인덱스 생성")
 
         tokenized_corpus = [self.tokenize_fn(doc) for doc in self.corpus]
         self.bm25 = BM25Okapi(tokenized_corpus)
@@ -78,7 +78,7 @@ class BM25Retriever:
                 },
                 f,
             )
-        logger.debug("인덱스 생성 완료")
+        logger.info("인덱스 생성 완료")
 
     def retrieve(self, query: str, top_k: int = 3) -> List[Dict]:
         """
@@ -109,7 +109,7 @@ class BM25Retriever:
             raise Exception("BM25 모델이 초기화되지 않았습니다.")
 
         results = []
-        logger.debug(f"{len(queries)}개 쿼리 일괄 검색")
+        logger.info(f"{len(queries)}개 쿼리 일괄 검색")
         # 모든 쿼리를 한 번에 토크나이징
         tokenized_queries = [self.tokenize_fn(query) for query in queries]
 
@@ -128,18 +128,17 @@ class BM25Retriever:
                 )
             results.append(query_results)
 
+        logger.info(f"{len(queries)}개 쿼리 일괄 검색 완료")
         return results
 
 
 if __name__ == "__main__":
     os.chdir("..")
-    # tokenizer = AutoTokenizer.from_pretrained("klue/bert-base")
     retriever = BM25Retriever(
-        # tokenize_fn=tokenizer.tokenize,
         doc_type="wikipedia",
         data_path="../data/",
         pickle_filename="wiki_bm25.pkl",
-        doc_filename="wiki_dump.json",
+        doc_filename="wiki.json",
     )
 
     query = "선비들 수만 명이 대궐 앞에 모여 만 동묘와 서원을 다시 설립할 것을 청하니, (가)이/가 크게 노하여 한성부의 조례(皂隷)와 병졸로 하여 금 한 강 밖으로 몰아내게 하고 드디어 천여 곳의 서원을 철폐하고 그 토지를 몰수하여 관에 속하게 하였다.－대한계년사"  # noqa: E501

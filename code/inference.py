@@ -14,7 +14,7 @@ class InferenceModel:
 
     def run_inference(self):
         if not self.inference_config["do_test"]:
-            logger.info(f"inference do_test 설정: {self.inference_config["do_test"]}")
+            logger.info("추론 단계를 생략합니다. inference do_test 설정을 확인하세요.")
             return
 
         results = self._inference(self.test_dataset)

@@ -16,8 +16,7 @@ class DataLoader:
         self.test_path = data_config["test_path"]
         self.max_seq_length = data_config["max_seq_length"]
         self.test_size = data_config["test_size"]
-        self.prompt_no_question = data_config["prompt"]["no_question"]
-        self.prompt_with_question = data_config["prompt"]["with_question"]
+        self.prompt_config = data_config["prompt"]
 
     def prepare_datasets(self, is_train=True):
         """학습 또는 테스트용 데이터셋 준비"""
@@ -32,21 +31,30 @@ class DataLoader:
             return processed_dataset
 
     def _retrieve(self, df):
-        retriever = BM25Retriever(
-            tokenize_fn=self.tokenizer.tokenize,
-            doc_type=self.retriever_config["doc_type"],
-            data_path=self.retriever_config["data_path"],
-            pickle_filename=self.retriever_config["pickle_filename"],
-            doc_filename=self.retriever_config["doc_filename"],
-        )
+        if self.retriever_config["retriever_type"] == "BM25":
+            retriever = BM25Retriever(
+                tokenize_fn=self.tokenizer.tokenize,
+                doc_type=self.retriever_config["doc_type"],
+                data_path=self.retriever_config["data_path"],
+                pickle_filename=self.retriever_config["pickle_filename"],
+                doc_filename=self.retriever_config["doc_filename"],
+            )
+        elif self.retriever_config["retriever_type"] == "Elasticsearch":
+            raise NotImplementedError("Elasticsearch는 구현되지 않은 옵션입니다. BM25를 사용하세요.")
+        else:
+            return [""] * len(df)
 
-        def combine_text(row):
+        def _combine_text(row):
             return row["paragraph"] + " " + row["problems"]["question"] + " " + " ".join(row["problems"]["choices"])
 
-        queries = df.apply(combine_text, axis=1)
-        top_k = 2
+        top_k = self.retriever_config["top_k"]
+        threshold = self.retriever_config["threshold"]
+        queries = df.apply(_combine_text, axis=1)
         retrive_results = retriever.bulk_retrieve(queries, top_k)
-        docs = [" ".join(item["text"] for item in result) for result in retrive_results]
+
+        docs = []
+        for result in retrive_results:
+            docs.append(" ".join(item["text"] for item in result if item["score"] >= threshold))
         return docs
 
     def _load_data(self, file_path) -> List[Dict]:
@@ -54,7 +62,6 @@ class DataLoader:
         df = pd.read_csv(file_path)
         df["problems"] = df["problems"].apply(literal_eval)
         docs = self._retrieve(df)
-
         records = []
         for idx, row in df.iterrows():
             problems = row["problems"]
@@ -78,22 +85,31 @@ class DataLoader:
         for row in dataset:
             choices_string = "\n".join([f"{idx + 1} - {choice}" for idx, choice in enumerate(row["choices"])])
 
+            # start
             if row["question_plus"]:
-                user_message = self.prompt_with_question.format(
+                message_start = self.prompt_config["start_with_plus"].format(
                     paragraph=row["paragraph"],
                     question=row["question"],
                     question_plus=row["question_plus"],
-                    document=row["document"],
                     choices=choices_string,
                 )
             else:
-                user_message = self.prompt_no_question.format(
+                message_start = self.prompt_config["start"].format(
                     paragraph=row["paragraph"],
                     question=row["question"],
-                    document=row["document"],
                     choices=choices_string,
                 )
+            # mid
+            if row["document"]:
+                message_mid = self.prompt_config["mid_with_document"].format(
+                    document=row["document"],
+                )
+            else:
+                message_mid = self.prompt_config["start"]
+            # end
+            message_end = self.prompt_config["end"]
 
+            user_message = message_start + message_mid + message_end
             messages = [
                 {"role": "system", "content": "지문을 읽고 질문의 답을 구하세요."},
                 {"role": "user", "content": user_message},

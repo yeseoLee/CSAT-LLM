@@ -1,4 +1,5 @@
 from ast import literal_eval
+from typing import Dict, List
 
 from datasets import Dataset
 from loguru import logger
@@ -8,7 +9,9 @@ from rag import BM25Retriever
 
 
 class DataLoader:
-    def __init__(self, data_config):
+    def __init__(self, tokenizer, data_config):
+        self.tokenizer = tokenizer
+        self.retriever_config = data_config["retriever"]
         self.train_path = data_config["train_path"]
         self.test_path = data_config["test_path"]
         self.max_seq_length = data_config["max_seq_length"]
@@ -16,21 +19,25 @@ class DataLoader:
         self.prompt_no_question = data_config["prompt"]["no_question"]
         self.prompt_with_question = data_config["prompt"]["with_question"]
 
-    def prepare_datasets(self):
-        df = self._load_data(self.train_path)
-        dataset = Dataset.from_pandas(df)
-        processed_dataset = self._process_dataset(dataset)
-        tokenized_dataset = self._tokenize_dataset(processed_dataset)
-        return self._split_dataset(tokenized_dataset)
+    def prepare_datasets(self, is_train=True):
+        """학습 또는 테스트용 데이터셋 준비"""
+        if is_train:
+            dataset = self._load_data(self.train_path)
+            processed_dataset = self._process_dataset(dataset)
+            tokenized_dataset = self._tokenize_dataset(processed_dataset)
+            return self._split_dataset(tokenized_dataset)
+        else:
+            dataset = self._load_data(self.test_path)
+            processed_dataset = self._process_dataset(dataset, is_train=False)
+            return processed_dataset
 
-    # TODO: config로 인자 분리
     def _retrieve(self, df):
         retriever = BM25Retriever(
             tokenize_fn=self.tokenizer.tokenize,
-            doc_type="wikipedia",
-            data_path="../data/",
-            pickle_filename="wiki_mrc_bm25.pkl",
-            doc_filename="wiki_mrc.json",
+            doc_type=self.retriever_config["doc_type"],
+            data_path=self.retriever_config["data_path"],
+            pickle_filename=self.retriever_config["pickle_filename"],
+            doc_filename=self.retriever_config["doc_filename"],
         )
 
         def combine_text(row):
@@ -41,60 +48,61 @@ class DataLoader:
         retrive_result = retriever.bulk_retrieve(queries, top_k)
         return retrive_result["text"]
 
-    def _load_data(self, file_path):
+    def _load_data(self, file_path) -> List[Dict]:
+        """csv를 읽어오고 dictionary 배열 형태로 변환합니다."""
         df = pd.read_csv(file_path)
         df["problems"] = df["problems"].apply(literal_eval)
         docs = self._retrieve(df)
+
         records = []
         for idx, row in df.iterrows():
+            problems = row["problems"]
             record = {
                 "id": row["id"],
                 "paragraph": row["paragraph"],
-                "question": row["problems"]["question"],
-                "choices": row["problems"]["choices"],
-                "answer": row["problems"].get("answer", None),
-                "question_plus": row["problems"].get("question_plus", None),
+                "question": problems["question"],
+                "choices": problems["choices"],
+                "answer": problems.get("answer", None),
+                "question_plus": problems.get("question_plus", None),
                 "doc": docs[idx],
             }
             records.append(record)
-        return pd.DataFrame(records)
+        return records
 
-    def _process_dataset(self, dataset):
-        processed_dataset = []
-        for i in range(len(dataset)):
-            choices_string = "\n".join([f"{idx + 1} - {choice}" for idx, choice in enumerate(dataset[i]["choices"])])
+    def _process_dataset(self, dataset: List[Dict], is_train=True):
+        """데이터에 프롬프트 적용"""
+        processed_data = []
 
-            # <보기>가 있을 때
-            if dataset[i]["question_plus"]:
+        for _, row in dataset:
+            choices_string = "\n".join([f"{idx + 1} - {choice}" for idx, choice in enumerate(row["choices"])])
+
+            if row["question_plus"]:
                 user_message = self.prompt_with_question.format(
-                    paragraph=dataset[i]["paragraph"],
-                    question=dataset[i]["question"],
-                    question_plus=dataset[i]["question_plus"],
-                    doc=dataset[i]["doc"],
+                    paragraph=row["paragraph"],
+                    question=row["question"],
+                    question_plus=row["question_plus"],
+                    doc=row["doc"],
                     choices=choices_string,
                 )
-            # <보기>가 없을 때
             else:
                 user_message = self.prompt_no_question.format(
-                    paragraph=dataset[i]["paragraph"],
-                    question=dataset[i]["question"],
-                    doc=dataset[i]["doc"],
+                    paragraph=row["paragraph"],
+                    question=row["question"],
+                    doc=row["doc"],
                     choices=choices_string,
                 )
 
-            # chat message 형식으로 변환
-            processed_dataset.append(
-                {
-                    "id": dataset[i]["id"],
-                    "messages": [
-                        {"role": "system", "content": "지문을 읽고 질문의 답을 구하세요."},
-                        {"role": "user", "content": user_message},
-                        {"role": "assistant", "content": f"{dataset[i]['answer']}"},
-                    ],
-                    "label": dataset[i]["answer"],
-                }
-            )
-        return Dataset.from_pandas(pd.DataFrame(processed_dataset))
+            messages = [
+                {"role": "system", "content": "지문을 읽고 질문의 답을 구하세요."},
+                {"role": "user", "content": user_message},
+            ]
+
+            if is_train:
+                messages.append({"role": "assistant", "content": f"{row['answer']}"})
+
+            processed_data.append({"id": row["id"], "messages": messages, "label": row["answer"] if is_train else None})
+
+        return Dataset.from_pandas(pd.DataFrame(processed_data))
 
     def _tokenize_dataset(self, dataset):
         def formatting_prompts_func(example):

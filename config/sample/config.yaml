@@ -3,9 +3,14 @@ data:
   test_path: "../data/test.csv"
   max_seq_length: 1024
   test_size: 0.1
+  retrieval:
+    doc_type: "wikipedia"
+    data_path: "../data/"
+    pickle_filename: "wiki_bm25.pkl"
+    doc_filename: "wiki.json"
   prompt:
-    no_question: "지문:\n {paragraph}\n\n 질문:\n {question}\n\n 선택지:\n {choices}\n\n 1, 2, 3, 4, 5 중에 하나를 정답으로 고르세요.\n 정답:"
-    with_question: "지문:\n {paragraph}\n\n 질문:\n {question}\n\n <보기>:\n {question_plus}\n\n 선택지:\n {choices}\n\n 1, 2, 3, 4, 5 중에 하나를 정답으로 고르세요.\n 정답:"
+    no_question: "지문:\n {paragraph}\n\n 질문:\n {question}\n\n 선택지:\n {choices}\n\n 참고(선택사항):\n {docs}\n\n 1, 2, 3, 4, 5 중에 하나를 정답으로 고르세요.\n 정답:"
+    with_question: "지문:\n {paragraph}\n\n 질문:\n {question}\n\n <보기>:\n {question_plus}\n\n 선택지:\n {choices}\n\n 참고(선택사항):\n {docs}\n\n 1, 2, 3, 4, 5 중에 하나를 정답으로 고르세요.\n 정답:"
 
 model:
   base_model: "beomi/gemma-ko-2b"
@@ -46,10 +51,10 @@ training:
     logging_strategy: "epoch"
     save_strategy: "epoch"
     eval_strategy: "epoch"
-    logging_steps: 500
-    save_steps: 500
-    eval_steps: 500
-    save_total_limit: 2
+    logging_steps: 200
+    save_steps: 377
+    eval_steps: 200
+    save_total_limit: 4
     save_only_model: true
     report_to: "wandb"
     run_name: "../outputs" # wandb 세팅이 존재한다면 동적으로 생성됩니다.

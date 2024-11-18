@@ -43,9 +43,8 @@ def main():
         model_handler = ModelHandler(config["model"])
         model, tokenizer = model_handler.setup()
 
-        # 데이터 처리
-        data_processor = DataLoader(config["data"])
-        data_processor.tokenizer = tokenizer  # 토크나이저 설정
+        # 학습용 데이터 처리
+        data_processor = DataLoader(tokenizer, config["data"])
         train_dataset, eval_dataset = data_processor.prepare_datasets()
 
         # 학습
@@ -58,12 +57,16 @@ def main():
         )
         trained_model = trainer.train()
 
+        # 추론용 데이터 처리
+        data_processor
+        test_dataset = data_processor.prepare_datasets(is_train=False)
+
         # 추론
         inferencer = InferenceModel(
-            data_config=config["data"],
             inference_config=config["inference"],
             model=trained_model,
             tokenizer=tokenizer,
+            test_dataset=test_dataset,
         )
         inferencer.run_inference()
 

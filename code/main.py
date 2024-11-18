@@ -68,7 +68,7 @@ def main():
         inferencer.run_inference()
 
     except Exception as e:
-        logger.info(f"Error occurred: {e}")
+        logger.exception(f"Error occurred: {e}")
         wandb.finish(exit_code=1)
     else:
         logger.info("Upload output & config to GDrive...")

@@ -23,7 +23,6 @@ class ModelHandler:
             if bits == 8:
                 quantization_config = BitsAndBytesConfig(
                     load_in_8bit=True,
-                    llm_int8_has_fp16_weight=True,
                     bnb_8bit_use_double_quant=self.model_config["use_double_quant"],
                     bnb_8bit_compute_dtype=torch_dtype,
                 )

@@ -1,5 +1,6 @@
 from loguru import logger
 import numpy as np
+import pandas as pd
 import torch
 from tqdm import tqdm
 
@@ -41,3 +42,7 @@ class InferenceModel:
                 infer_results.append({"id": example["id"], "answer": predict_value})
 
         return infer_results
+
+    def _save_results(self, results):
+        logger.info(self.inference_config["output_path"])
+        pd.DataFrame(results).to_csv(self.inference_config["output_path"], index=False)

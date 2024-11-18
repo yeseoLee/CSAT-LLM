@@ -45,8 +45,9 @@ class DataLoader:
 
         queries = df.apply(combine_text, axis=1)
         top_k = 2
-        retrive_result = retriever.bulk_retrieve(queries, top_k)
-        return retrive_result["text"]
+        retrive_results = retriever.bulk_retrieve(queries, top_k)
+        docs = [" ".join(item["text"] for item in result) for result in retrive_results]
+        return docs
 
     def _load_data(self, file_path) -> List[Dict]:
         """csv를 읽어오고 dictionary 배열 형태로 변환합니다."""
@@ -64,16 +65,17 @@ class DataLoader:
                 "choices": problems["choices"],
                 "answer": problems.get("answer", None),
                 "question_plus": problems.get("question_plus", None),
-                "doc": docs[idx],
+                "document": docs[idx],
             }
             records.append(record)
+        logger.info("dataset 로드 및 retrive 완료.")
         return records
 
     def _process_dataset(self, dataset: List[Dict], is_train=True):
         """데이터에 프롬프트 적용"""
         processed_data = []
 
-        for _, row in dataset:
+        for row in dataset:
             choices_string = "\n".join([f"{idx + 1} - {choice}" for idx, choice in enumerate(row["choices"])])
 
             if row["question_plus"]:
@@ -81,14 +83,14 @@ class DataLoader:
                     paragraph=row["paragraph"],
                     question=row["question"],
                     question_plus=row["question_plus"],
-                    doc=row["doc"],
+                    document=row["document"],
                     choices=choices_string,
                 )
             else:
                 user_message = self.prompt_no_question.format(
                     paragraph=row["paragraph"],
                     question=row["question"],
-                    doc=row["doc"],
+                    document=row["document"],
                     choices=choices_string,
                 )
 
@@ -102,6 +104,7 @@ class DataLoader:
 
             processed_data.append({"id": row["id"], "messages": messages, "label": row["answer"] if is_train else None})
 
+        logger.info("dataset에 prompt 적용 완료.")
         return Dataset.from_pandas(pd.DataFrame(processed_data))
 
     def _tokenize_dataset(self, dataset):

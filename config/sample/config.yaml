@@ -1,16 +1,16 @@
 data:
   train_path: "../data/train.csv"
   test_path: "../data/test.csv"
-  max_seq_length: 1024
+  max_seq_length: 2048
   test_size: 0.1
-  retrieval:
+  retriever:
     doc_type: "wikipedia"
     data_path: "../data/"
-    pickle_filename: "wiki_bm25.pkl"
-    doc_filename: "wiki.json"
+    pickle_filename: "wiki_mrc_bm25.pkl"
+    doc_filename: "wiki_mrc.json"
   prompt:
-    no_question: "지문:\n {paragraph}\n\n 질문:\n {question}\n\n 선택지:\n {choices}\n\n 참고(선택사항):\n {docs}\n\n 1, 2, 3, 4, 5 중에 하나를 정답으로 고르세요.\n 정답:"
-    with_question: "지문:\n {paragraph}\n\n 질문:\n {question}\n\n <보기>:\n {question_plus}\n\n 선택지:\n {choices}\n\n 참고(선택사항):\n {docs}\n\n 1, 2, 3, 4, 5 중에 하나를 정답으로 고르세요.\n 정답:"
+    no_question: "지문:\n {paragraph}\n\n질문:\n {question}\n\n선택지:\n {choices}\n\n힌트:\n {document}\n\n 1, 2, 3, 4, 5 중에 하나를 정답으로 고르세요. 힌트는 지문 내에서 답을 찾을 수 없을 때만 참고하세요. \n 정답:"
+    with_question: "지문:\n {paragraph}\n\n질문:\n {question}\n\n<보기>:\n {question_plus}\n\n선택지:\n {choices}\n\n힌트:\n {document}\n\n 1, 2, 3, 4, 5 중에 하나를 정답으로 고르세요. 힌트는 지문 내에서 답을 찾을 수 없을 때만 참고하세요.\n 정답:"
 
 model:
   base_model: "beomi/gemma-ko-2b"

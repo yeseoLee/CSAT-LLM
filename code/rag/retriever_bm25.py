@@ -4,21 +4,19 @@ import pickle
 from typing import Dict, List, Optional
 
 from datasets import load_dataset
-from konlpy.tag import Okt
 from loguru import logger
 import numpy as np
 from rank_bm25 import BM25Okapi
 
 
-okt = Okt()
-
-
-def okt_specific_pos_tokenizer(text, stem=True, norm=True):
-    # pos 태깅 수행
-    pos_tagged = okt.pos(text, stem=stem, norm=norm)
-    # 명사(Noun), 형용사(Adjective), 동사(Verb)만 필터링
-    filtered_words = [word for word, pos in pos_tagged if pos in ["Noun", "Adjective", "Verb"]]
-    return filtered_words
+# from konlpy.tag import Okt
+# okt = Okt()
+# def okt_specific_pos_tokenizer(text, stem=True, norm=True):
+#     # pos 태깅 수행
+#     pos_tagged = okt.pos(text, stem=stem, norm=norm)
+#     # 명사(Noun), 형용사(Adjective), 동사(Verb)만 필터링
+#     filtered_words = [word for word, pos in pos_tagged if pos in ["Noun", "Adjective", "Verb"]]
+#     return filtered_words
 
 
 class BM25Retriever:
@@ -30,7 +28,7 @@ class BM25Retriever:
         pickle_filename: str = "wiki_bm25.pkl",
         doc_filename: Optional[str] = "wiki_document.json",
     ) -> None:
-        self.tokenize_fn = tokenize_fn if tokenize_fn else okt_specific_pos_tokenizer
+        self.tokenize_fn = tokenize_fn if tokenize_fn else lambda x: x.split()
         self.pickle_path = os.path.join(data_path, pickle_filename)
         self.bm25 = None
         self.corpus = []
@@ -135,6 +133,7 @@ class BM25Retriever:
 if __name__ == "__main__":
     os.chdir("..")
     retriever = BM25Retriever(
+        tokenize_fn=None,
         doc_type="wikipedia",
         data_path="../data/",
         pickle_filename="wiki_bm25.pkl",

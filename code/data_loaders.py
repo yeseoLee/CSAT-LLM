@@ -51,6 +51,7 @@ class DataLoader:
         threshold = self.retriever_config["threshold"]
         queries = df.apply(_combine_text, axis=1)
         retrive_results = retriever.bulk_retrieve(queries, top_k)
+        # [{"text":"안녕하세요", "score":96}, {"text":"반갑습니다", "score":88},]
 
         docs = []
         for result in retrive_results:

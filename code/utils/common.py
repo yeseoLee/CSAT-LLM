@@ -1,7 +1,9 @@
 import argparse
+from contextlib import contextmanager
 from datetime import datetime
 import os
 import random
+import time
 
 from dotenv import load_dotenv
 from loguru import logger
@@ -11,6 +13,7 @@ import yaml
 from zoneinfo import ZoneInfo
 
 
+# 코드 전역에서 첫 실행 시점의 타임스탬프를 동일하게 사용
 CURRENT_TIME = None
 
 
@@ -94,3 +97,10 @@ def create_experiment_filename(config):
     current_time = get_current_time()
 
     return f"{username}_{base_model}_{train_name}_{num_train_epochs}_{learning_rate}_{current_time}"
+
+
+@contextmanager
+def timer(name):
+    t0 = time.time()
+    yield
+    logger.debug(f"[{name}] done in {time.time() - t0:.3f} s")

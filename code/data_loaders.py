@@ -6,7 +6,7 @@ from datasets import Dataset
 from loguru import logger
 import numpy as np
 import pandas as pd
-from rag import BM25Retriever
+from rag import BM25Retriever, ElasticsearchRetriever
 
 
 class DataLoader:
@@ -37,13 +37,15 @@ class DataLoader:
         if self.retriever_config["retriever_type"] == "BM25":
             retriever = BM25Retriever(
                 tokenize_fn=self.tokenizer.tokenize,
-                doc_type=self.retriever_config["doc_type"],
                 data_path=self.retriever_config["data_path"],
                 pickle_filename=self.retriever_config["pickle_filename"],
                 doc_filename=self.retriever_config["doc_filename"],
             )
         elif self.retriever_config["retriever_type"] == "Elasticsearch":
-            raise NotImplementedError("Elasticsearch는 구현되지 않은 옵션입니다. BM25를 사용하세요.")
+            retriever = ElasticsearchRetriever(
+                doc_type=self.retriever_config["doc_type"],
+                index_name=self.retriever_config["index_name"],
+            )
         else:
             return [""] * len(df)
 
@@ -191,8 +193,9 @@ class DataLoader:
         )
 
         # 토큰 길이가 max_seq_length를 초과하는 데이터 필터링
-        # 힌트: 1024보다 길이가 더 긴 데이터를 포함하면 더 높은 점수를 달성할 수 있을 것 같습니다!
+        logger.info(f"dataset length: {len(tokenized_dataset)}")
         tokenized_dataset = tokenized_dataset.filter(lambda x: len(x["input_ids"]) <= self.max_seq_length)
+        logger.info(f"filtered dataset length: {len(tokenized_dataset)}")
 
         return tokenized_dataset
 

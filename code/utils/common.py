@@ -37,7 +37,7 @@ def load_config():
     return config
 
 
-def load_env_file(filepath=".env"):
+def load_env_file(filepath="../config/.env"):
     try:
         # .env 파일 로드 시도
         if load_dotenv(filepath):

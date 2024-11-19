@@ -37,6 +37,9 @@ class ModelHandler:
                 raise ValueError(f"Unsupported bits value: {bits}")
 
             base_kwargs["quantization_config"] = quantization_config
+        elif self.model_config["quantization"] == "auto":
+            base_kwargs["torch_dtype"] = "auto"
+            base_kwargs["device_map"] = "auto"
         else:
             base_kwargs["torch_dtype"] = torch_dtype
 

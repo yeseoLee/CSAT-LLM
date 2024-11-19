@@ -1,11 +1,12 @@
 from ast import literal_eval
+import os
 from typing import Dict, List
 
 from datasets import Dataset
 from loguru import logger
 import numpy as np
 import pandas as pd
-from rag import BM25Retriever
+from rag import BM25Retriever, ElasticsearchRetriever
 
 
 class DataLoader:
@@ -14,6 +15,8 @@ class DataLoader:
         self.retriever_config = data_config["retriever"]
         self.train_path = data_config["train_path"]
         self.test_path = data_config["test_path"]
+        self.processed_train_path = data_config["processed_train_path"]
+        self.processed_test_path = data_config["processed_test_path"]
         self.max_seq_length = data_config["max_seq_length"]
         self.test_size = data_config["test_size"]
         self.prompt_config = data_config["prompt"]
@@ -34,28 +37,44 @@ class DataLoader:
         if self.retriever_config["retriever_type"] == "BM25":
             retriever = BM25Retriever(
                 tokenize_fn=self.tokenizer.tokenize,
-                doc_type=self.retriever_config["doc_type"],
                 data_path=self.retriever_config["data_path"],
                 pickle_filename=self.retriever_config["pickle_filename"],
                 doc_filename=self.retriever_config["doc_filename"],
             )
         elif self.retriever_config["retriever_type"] == "Elasticsearch":
-            raise NotImplementedError("Elasticsearch는 구현되지 않은 옵션입니다. BM25를 사용하세요.")
+            retriever = ElasticsearchRetriever(
+                index_name=self.retriever_config["index_name"],
+            )
         else:
             return [""] * len(df)
 
         def _combine_text(row):
-            return row["paragraph"] + " " + row["problems"]["question"] + " " + " ".join(row["problems"]["choices"])
+            if self.retriever_config["query_type"] == "pqc":
+                return row["paragraph"] + " " + row["problems"]["question"] + " " + " ".join(row["problems"]["choices"])
+            if self.retriever_config["query_type"] == "pq":
+                return row["paragraph"] + " " + row["problems"]["question"]
+            if self.retriever_config["query_type"] == "pc":
+                return row["paragraph"] + " " + " ".join(row["problems"]["choices"])
+            else:
+                return row["paragraph"]
 
         top_k = self.retriever_config["top_k"]
         threshold = self.retriever_config["threshold"]
-        queries = df.apply(_combine_text, axis=1)
-        retrive_results = retriever.bulk_retrieve(queries, top_k)
-        # [{"text":"안녕하세요", "score":96}, {"text":"반갑습니다", "score":88},]
+        query_max_length = self.retriever_config["query_max_length"]
 
-        docs = []
-        for result in retrive_results:
-            docs.append(" ".join(item["text"] for item in result if item["score"] >= threshold))
+        queries = df.apply(_combine_text, axis=1)
+        filtered_queries = [(i, q) for i, q in enumerate(queries) if len(q) <= query_max_length]
+        if not filtered_queries:
+            return [""] * len(queries)
+
+        indices, valid_queries = zip(*filtered_queries)
+        retrieve_results = retriever.bulk_retrieve(valid_queries, top_k)
+        # # [[{"text":"안녕하세요", "score":96}, {"text":"반갑습니다", "score":88},],]
+
+        docs = [""] * len(queries)
+        for idx, result in zip(indices, retrieve_results):
+            docs[idx] = " ".join(item["text"] for item in result if item["score"] >= threshold)
+
         return docs
 
     def _load_data(self, file_path) -> List[Dict]:
@@ -81,8 +100,18 @@ class DataLoader:
 
     def _process_dataset(self, dataset: List[Dict], is_train=True):
         """데이터에 프롬프트 적용"""
-        processed_data = []
 
+        # prompt 전처리된 데이터셋 파일이 존재한다면 이를 로드합니다.
+        processed_df_path = self.processed_train_path if is_train else self.processed_test_path
+        if os.path.isfile(processed_df_path):
+            logger.info(f"전처리된 데이터셋을 불러옵니다: {processed_df_path}")
+            processed_df = pd.read_csv(processed_df_path, encoding="utf-8")
+            processed_df["messages"] = processed_df["messages"].apply(literal_eval)
+            return Dataset.from_pandas(processed_df)
+
+        # 데이터셋을 prompt 전처리하고 저장합니다.
+        logger.info("데이터셋 전처리를 수행합니다.")
+        processed_data = []
         for row in dataset:
             choices_string = "\n".join([f"{idx + 1} - {choice}" for idx, choice in enumerate(row["choices"])])
 
@@ -121,8 +150,12 @@ class DataLoader:
 
             processed_data.append({"id": row["id"], "messages": messages, "label": row["answer"] if is_train else None})
 
-        logger.info("dataset에 prompt 적용 완료.")
-        return Dataset.from_pandas(pd.DataFrame(processed_data))
+        processed_df = pd.DataFrame(processed_data)
+        logger.info("데이터셋 전처리가 완료되었습니다.")
+        if processed_df_path:
+            processed_df.to_csv(processed_df_path, index=False, encoding="utf-8")
+            logger.info("전처리된 데이터셋이 저장되었습니다.")
+        return Dataset.from_pandas(processed_df)
 
     def _tokenize_dataset(self, dataset):
         def formatting_prompts_func(example):
@@ -159,8 +192,9 @@ class DataLoader:
         )
 
         # 토큰 길이가 max_seq_length를 초과하는 데이터 필터링
-        # 힌트: 1024보다 길이가 더 긴 데이터를 포함하면 더 높은 점수를 달성할 수 있을 것 같습니다!
+        logger.info(f"dataset length: {len(tokenized_dataset)}")
         tokenized_dataset = tokenized_dataset.filter(lambda x: len(x["input_ids"]) <= self.max_seq_length)
+        logger.info(f"filtered dataset length: {len(tokenized_dataset)}")
 
         return tokenized_dataset
 

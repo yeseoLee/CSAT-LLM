@@ -1,19 +1,35 @@
 data:
   train_path: "../data/train.csv"
   test_path: "../data/test.csv"
-  max_seq_length: 1024
+  max_seq_length: 2048
   test_size: 0.1
+  retriever:
+    retriever_type: "" # BM25
+    top_k: 1
+    threshold: 0.0
+    doc_type: "wikipedia"
+    data_path: "../data/"
+    pickle_filename: "wiki_mrc_bm25.pkl"
+    doc_filename: "wiki_mrc.json"
   prompt:
-    no_question: "지문:\n {paragraph}\n\n 질문:\n {question}\n\n 선택지:\n {choices}\n\n 1, 2, 3, 4, 5 중에 하나를 정답으로 고르세요.\n 정답:"
-    with_question: "지문:\n {paragraph}\n\n 질문:\n {question}\n\n <보기>:\n {question_plus}\n\n 선택지:\n {choices}\n\n 1, 2, 3, 4, 5 중에 하나를 정답으로 고르세요.\n 정답:"
+    start: "지문:\n {paragraph}\n\n질문:\n {question}\n\n선택지:\n {choices}\n\n"
+    start_with_plus: "지문:\n {paragraph}\n\n질문:\n {question}\n\n<보기>:\n {question_plus}\n\n선택지:\n {choices}\n\n"
+    mid: ""
+    mid_with_document: "힌트:\n {document}\n\n 힌트는 지문 내에서 답을 찾을 수 없을 때만 참고하세요.\n"
+    end: "1, 2, 3, 4, 5 중에 하나를 정답으로 고르세요. Let's think step by step.\n정답:"
+    end_gen_cot: "1, 2, 3, 4, 5 중에 하나를 정답으로 고르기 위한 근거를 차근차근 생각해보세요.\n근거:"
+    end_with_cot: "1, 2, 3, 4, 5 중에 하나를 정답으로 고르세요.\n{cot}\n정답:"
+
 
 model:
   base_model: "beomi/gemma-ko-2b"
   model:
     torch_dtype: "float16"
     low_cpu_mem_usage: true
-    load_in_8bit: false
-    load_in_4bit: false
+    use_cache: true # gradient_checkpointing이 true면 false여야함
+    quantization: "" # BitsAndBytes
+    bits: 8 # 8, 4, 2
+    use_double_quant: false
   tokenizer:
     padding_side: "right"
     chat_template: "{% if messages[0]['role'] == 'system' %}{% set system_message = messages[0]['content'] %}{% endif %}{% if system_message is defined %}{{ system_message }}{% endif %}{% for message in messages %}{% set content = message['content'] %}{% if message['role'] == 'user' %}{{ '<start_of_turn>user\n' + content + '<end_of_turn>\n<start_of_turn>model\n' }}{% elif message['role'] == 'assistant' %}{{ content + '<end_of_turn>\n' }}{% endif %}{% endfor %}"
@@ -36,14 +52,18 @@ training:
     per_device_train_batch_size: 1
     per_device_eval_batch_size: 1
     gradient_accumulation_steps: 1
-    gradient_checkpointing: true
+    gradient_checkpointing: false
+    max_grad_norm: 0.3
     num_train_epochs: 3
     learning_rate: 2.0e-05
     weight_decay: 0.01
     logging_strategy: "epoch"
     save_strategy: "epoch"
     eval_strategy: "epoch"
-    save_total_limit: 2
+    logging_steps: 200
+    save_steps: 377
+    eval_steps: 200
+    save_total_limit: 4
     save_only_model: true
     report_to: "wandb"
     run_name: "../outputs" # wandb 세팅이 존재한다면 동적으로 생성됩니다.
@@ -52,6 +72,7 @@ training:
 
 
 inference:
+  do_test: true
   output_path: "../outputs/"
 
 log:

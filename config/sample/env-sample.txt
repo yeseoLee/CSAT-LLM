@@ -11,3 +11,7 @@ GDRIVE_CREATE_TOKEN= "false"
 UPLOAD_MODEL_NAME = "1115-fubao-exaone3.0-base-v1" # 날짜-이름-베이스모델-사용데이터셋-버전
 USERNAME = "fubao"
 CHECKPOINT_PATH="../outputs/checkpoint-9999"
+
+ELASTICSEARCH_URL="http://localhost:9200"
+ELASTICSEARCH_ID=""
+ELASTICSEARCH_PW=""

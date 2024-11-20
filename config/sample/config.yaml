@@ -6,15 +6,12 @@ data:
   max_seq_length: 2048
   test_size: 0.1
   retriever:
-    retriever_type: "" # BM25, Elasticsearch
+    retriever_type: "" # Elasticsearch
     query_type: "p" # pqc, pq, pc, p
     query_max_length: 250 # 250-500 권장
     top_k: 1
     threshold: 0.0
-    data_path: "../data/"
     index_name: "wiki-index"
-    pickle_filename: "wiki_mrc_bm25.pkl"
-    doc_filename: "wiki_mrc.json"
   prompt:
     start: "지문:\n {paragraph}\n\n질문:\n {question}\n\n선택지:\n {choices}\n\n"
     start_with_plus: "지문:\n {paragraph}\n\n질문:\n {question}\n\n<보기>:\n {question_plus}\n\n선택지:\n {choices}\n\n"

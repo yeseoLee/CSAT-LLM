@@ -16,6 +16,7 @@ def load_data(file_path):
             "choices": problems["choices"],
             "answer": problems.get("answer", None),
             "question_plus": problems.get("question_plus", None),
+            "documents": row.get("documents", None),
         }
         records.append(record)
     return data, records
@@ -42,11 +43,14 @@ def display_instance(record):
     st.subheader("Question Plus")
     st.write(str(record["question_plus"]))
 
+    st.subheader("Documents")
+    st.write(str(record["documents"]))
 
-def main():
+
+def main(file_path="../data/train.csv"):
     st.title("CSV 데이터 인스턴스 뷰어")
 
-    data, records = load_data("../data/train.csv")
+    data, records = load_data(file_path)
 
     instance_index = st.number_input("인스턴스 선택", min_value=0, max_value=len(data) - 1, value=0, step=1)
 
@@ -57,4 +61,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main("../data/train_retrieve.csv")

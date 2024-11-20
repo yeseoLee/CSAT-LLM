@@ -6,7 +6,7 @@ from datasets import Dataset
 from loguru import logger
 import numpy as np
 import pandas as pd
-from rag import ElasticsearchRetriever
+from rag import ElasticsearchRetriever, Reranker
 
 
 class DataLoader:
@@ -64,7 +64,11 @@ class DataLoader:
 
         indices, valid_queries = zip(*filtered_queries)
         retrieve_results = retriever.bulk_retrieve(valid_queries, top_k)
-        # # [[{"text":"안녕하세요", "score":96}, {"text":"반갑습니다", "score":88},],]
+        rerank_k = self.retriever_config["rerank_k"]
+        if rerank_k > 0:
+            with Reranker() as reranker:
+                retrieve_results = reranker.rerank(valid_queries, retrieve_results, rerank_k)
+        # [[{"text":"안녕하세요", "score":0.5}, {"text":"반갑습니다", "score":0.3},],]
 
         docs = [""] * len(queries)
         for idx, result in zip(indices, retrieve_results):

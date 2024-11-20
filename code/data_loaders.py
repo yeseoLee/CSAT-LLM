@@ -6,7 +6,7 @@ from datasets import Dataset
 from loguru import logger
 import numpy as np
 import pandas as pd
-from rag import BM25Retriever, ElasticsearchRetriever
+from rag import ElasticsearchRetriever
 
 
 class DataLoader:
@@ -34,17 +34,12 @@ class DataLoader:
             return processed_dataset
 
     def _retrieve(self, df):
-        if self.retriever_config["retriever_type"] == "BM25":
-            retriever = BM25Retriever(
-                tokenize_fn=self.tokenizer.tokenize,
-                data_path=self.retriever_config["data_path"],
-                pickle_filename=self.retriever_config["pickle_filename"],
-                doc_filename=self.retriever_config["doc_filename"],
-            )
-        elif self.retriever_config["retriever_type"] == "Elasticsearch":
+        if self.retriever_config["retriever_type"] == "Elasticsearch":
             retriever = ElasticsearchRetriever(
                 index_name=self.retriever_config["index_name"],
             )
+        elif self.retriever_config["retriever_type"] == "BM25":
+            raise NotImplementedError("BM25는 더 이상 지원하지 않습니다. Elasticsearch를 사용해주세요...")
         else:
             return [""] * len(df)
 

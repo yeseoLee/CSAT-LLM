@@ -18,6 +18,7 @@ from rank_bm25 import BM25Okapi
 #     return filtered_words
 
 
+# Deprecated: 너무 느려서 더 이상 사용하지 않습니다.
 class BM25Retriever:
     def __init__(
         self,

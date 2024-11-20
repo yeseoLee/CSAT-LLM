@@ -5,10 +5,11 @@ from typing import Dict, List
 from dotenv import load_dotenv
 from loguru import logger
 import numpy as np
-from rag import ElasticsearchRetriever
 import torch
 from tqdm import tqdm
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+from .retriever_elastic import ElasticsearchRetriever
 
 
 class Reranker:

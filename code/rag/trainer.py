@@ -1,8 +1,14 @@
+import sys
+import os
+
+# 현재 코드가 있는 디렉토리 기준으로 상위 디렉토리를 `sys.path`에 추가
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import torch
 import torch.nn as nn
 import transformers
 import logging
-import os
 import wandb
 import numpy as np
 from typing import Tuple
@@ -227,6 +233,8 @@ def check_if_model_exists(model_path: str):
 
 # 메인 실행
 if __name__ == "__main__":
+
+    
     # 모델 경로 설정
     model_path = "./output/my_model.pt"
 

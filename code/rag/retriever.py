@@ -39,13 +39,16 @@ def get_passage_file(p_id_list: typing.List[int]) -> str:
     target_file = None
     p_id_max = max(p_id_list)
     p_id_min = min(p_id_list)
-    for f in glob("./rag/processed_passages/*.p"):
-    #for f in glob("./processed_passages/*.p"):
+    
+    # 현재 파일의 경로를 기준으로 'processed_passages' 경로 설정
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    passages_dir = os.path.join(current_dir, 'processed_passages')
+    
+    # 'processed_passages' 디렉터리에서 파일을 찾음
+    for f in glob(f"{passages_dir}/*.p"):
         file_name = os.path.basename(f)
         s, e = file_name.split(".")[0].split("-")
         s, e = int(s), int(e)
-
-        # print(f"Checking file: {file_name}, range: {s}-{e}")  # 디버깅 로그
 
         if p_id_min >= s and p_id_max <= e:
             target_file = f
@@ -167,7 +170,11 @@ if __name__ == "__main__":
     valid_dataset = KorQuadDataset("./data/KorQuAD_v1.0_dev.json")
     index = DenseFlatIndexer()
     index.deserialize(path="./2050iter_flat")
-    retriever = KorDPRRetriever(model=model, valid_dataset=valid_dataset, index=index)
+    
+    retriever = KorDPRRetriever(
+        model=model, 
+        valid_dataset=valid_dataset, 
+        index=index)
 
     # 'query'와 'k' 값을 설정합니다.
     query = "(가)이/가 크게 노하여 한성부의 조례(皂隷)와 병졸로 하여 금 한 강 밖으로 몰아내게 하고 드디어 천여 곳의 서원을 철폐하고 그 토지를 몰수하여 관에 속하게 하였다.－대한계년사 －"

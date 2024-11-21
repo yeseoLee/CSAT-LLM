@@ -40,7 +40,7 @@ def process_wiki_data():
     processed_passages_path = "processed_passages"
 
     if not os.path.exists(processed_passages_path):
-        logger.info(f"'{processed_passages_path}' 폴더가 존재하지 않습니다. 데이터 처리를 시작합니다.")
+        print(f"'{processed_passages_path}' 폴더가 존재하지 않습니다. 데이터 처리를 시작합니다.")
 
         # 1. chunk 데이터를 피클 파일로 변환하여 processed_passages 폴더에 저장 (약 10분 소요)
         save_orig_passage()
@@ -48,7 +48,7 @@ def process_wiki_data():
         # 2. 제목과 인덱스 매핑 저장
         save_title_index_map()
 
-        logger.info("데이터 처리가 완료되었습니다.")
+        print("데이터 처리가 완료되었습니다.")
     else:
         print(f"'{processed_passages_path}' 폴더가 이미 존재합니다. 데이터 처리를 건너뜁니다.")
 
@@ -87,11 +87,11 @@ if __name__ == "__main__":
             num_warmup_steps=1000,
             num_training_steps=100000,
             valid_every=30,
-            best_val_ckpt_path="./output/my_model.pt",
+            best_val_ckpt_path=model_path,
         )
 
         # 학습 상태 불러오기
-        my_trainer.load_training_state()
+        #my_trainer.load_training_state()
 
         # 학습 시작
         my_trainer.fit()

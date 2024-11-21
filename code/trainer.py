@@ -78,7 +78,11 @@ class CustomTrainer:
             args=sft_config,
             compute_metrics=self._compute_metrics,
             preprocess_logits_for_metrics=self._preprocess_logits_for_metrics,
-            callbacks=[EarlyStoppingCallback(early_stopping_patience=self.training_config["params"]["early_stop_patience"])]
+            callbacks=[
+                EarlyStoppingCallback(
+                    early_stopping_patience=self.training_config["params"]["early_stop_patience"],
+                    early_stopping_threshold=self.training_config["params"]["early_stop_threshold"]
+                    )]
         )
 
     # 모델의 logits를 조정하여 정답 토큰 부분만 출력하도록 설정

@@ -50,7 +50,7 @@ def process_wiki_data():
 
         logger.info("데이터 처리가 완료되었습니다.")
     else:
-        logger.info(f"'{processed_passages_path}' 폴더가 이미 존재합니다. 데이터 처리를 건너뜁니다.")
+        print(f"'{processed_passages_path}' 폴더가 이미 존재합니다. 데이터 처리를 건너뜁니다.")
 
 
 if __name__ == "__main__":
@@ -64,9 +64,9 @@ if __name__ == "__main__":
     # korquad 데이터로 모델을 학습시켜줍니다.
     # 모델이 이미 존재하면 학습을 건너뜁니다
     if check_if_model_exists(model_path):
-        logger.info(f"이미 학습된 모델이 {model_path}에 존재합니다. 학습을 건너뜁니다.")
+        print(f"이미 학습된 모델이 {model_path}에 존재합니다. 학습을 건너뜁니다.")
     else:
-        logger.info("학습된 모델이 없습니다. 학습을 시작합니다.")
+        print("학습된 모델이 없습니다. 학습을 시작합니다.")
 
         # 모델과 데이터셋 준비
         device = torch.device("cuda:0")
@@ -80,14 +80,14 @@ if __name__ == "__main__":
             device=device,
             train_dataset=train_dataset,
             valid_dataset=valid_dataset,
-            num_epoch=1,
+            num_epoch=10,
             batch_size=128 - 32,
             lr=1e-5,
             betas=(0.9, 0.99),
             num_warmup_steps=1000,
             num_training_steps=100000,
             valid_every=30,
-            best_val_ckpt_path="my_model.pt",
+            best_val_ckpt_path="./output/my_model.pt",
         )
 
         # 학습 상태 불러오기

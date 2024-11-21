@@ -18,10 +18,11 @@ def load_data(file_path):
             "question_plus": problems.get("question_plus", None),
             "target": problems.get("target", None),
             "suggested_label": problems.get("suggested_label", None),
-            "is_label_issue": problems.get("is_label_issue", None)
+            "is_label_issue": problems.get("is_label_issue", None),
         }
         records.append(record)
     return data, records
+
 
 def display_instance(record):
     st.subheader("Paragraph")
@@ -41,6 +42,7 @@ def display_instance(record):
     st.subheader("Question Plus")
     st.write(str(record["question_plus"]))
 
+
 def main():
     st.title("CSV 데이터 인스턴스 뷰어")
 
@@ -53,14 +55,14 @@ def main():
 
     # 1055 이전과 이후의 suggested_label 개수 계산
     label_counts = {
-        'Before 1380': {
-            'Label 0': (before_split['suggested_label'] == 0).sum(),
-            'Not Label 0': (before_split['suggested_label'] != 0).sum()
+        "Before 1380": {
+            "Label 0": (before_split["suggested_label"] == 0).sum(),
+            "Not Label 0": (before_split["suggested_label"] != 0).sum(),
         },
-        'After 1380': {
-            'Label 1': (after_split['suggested_label'] == 1).sum(),
-            'Not Label 1': (after_split['suggested_label'] != 1).sum()
-        }
+        "After 1380": {
+            "Label 1": (after_split["suggested_label"] == 1).sum(),
+            "Not Label 1": (after_split["suggested_label"] != 1).sum(),
+        },
     }
 
     # 결과를 데이터프레임으로 변환
@@ -71,10 +73,10 @@ def main():
     st.write(label_counts_df)
 
     # Before Split에서 suggested_label이 1인 행 필터링
-    before_split_label_1 = before_split[before_split['suggested_label'] == 1]
+    before_split_label_1 = before_split[before_split["suggested_label"] == 1]
 
     # After Split에서 suggested_label이 1인 행 필터링
-    after_split_label_1 = after_split[after_split['suggested_label'] == 0]
+    after_split_label_1 = after_split[after_split["suggested_label"] == 0]
 
     # 결과 출력
     st.subheader("Before 1380에서 suggested_label이 1인 인스턴스")
@@ -90,6 +92,7 @@ def main():
     st.write(data.iloc[instance_index])
 
     display_instance(records[instance_index])
+
 
 if __name__ == "__main__":
     main()

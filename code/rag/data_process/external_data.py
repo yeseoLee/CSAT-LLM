@@ -7,6 +7,38 @@ import urllib.request
 from loguru import logger
 
 
+def preprocess_text(text):
+    # 한글, 숫자, 특수문자, 공백만 남기고 나머지 제거
+    text = re.sub(r"\n", " ", text)
+    text = re.sub(r"\\n", " ", text)
+    text = re.sub(r"#", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    text = re.sub(r'[^ㄱ-ㅎ가-힣0-9!"#%&\'(),-./:;<=>?@[\]^_`{|}~\s]', '', text)
+    return text
+
+def process_json_array(json_data):
+    # text 필드 전처리
+    if 'text' in json_data:
+        json_data['text'] = preprocess_text(json_data['text'])
+    
+    # title 필드 전처리
+    if 'title' in json_data:
+        json_data['title'] = preprocess_text(json_data['title'])
+    
+    return json_data
+
+def process_json_file(json_filename):
+    with open(json_filename, "r", encoding="utf-8") as f:
+        docs = json.load(f)
+    
+    processed_docs = [process_json_array(item) for item in docs]
+
+    # 디렉토리와 파일명 분리 후 파일명에만 'processed_' 추가
+    directory, filename = os.path.split(json_filename)
+    output_path = os.path.join(directory, "processed_" + filename)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(processed_docs, f, ensure_ascii=False, indent=2)    
+
 def _dump_wiki(data_path: str = "../data"):
     """
     위키피디아 덤프를 다운로드하고 추출하는 함수
@@ -145,9 +177,12 @@ def ai_hub_news_corpus(input_dir: str, output_file: str):
 if __name__ == "__main__":
     os.chdir("../../")
 
+    PROCESS_JSON_FILE = False
     WIKIPEDIA = False
     AI_HUB_NEWS_CORPUS = False
 
+    if PROCESS_JSON_FILE:
+        process_json_file("../data/documents.json")
     if WIKIPEDIA:
         wikipedia()
     if AI_HUB_NEWS_CORPUS:

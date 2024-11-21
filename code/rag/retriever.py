@@ -39,11 +39,11 @@ def get_passage_file(p_id_list: typing.List[int]) -> str:
     target_file = None
     p_id_max = max(p_id_list)
     p_id_min = min(p_id_list)
-    
+
     # 현재 파일의 경로를 기준으로 'processed_passages' 경로 설정
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    passages_dir = os.path.join(current_dir, 'processed_passages')
-    
+    passages_dir = os.path.join(current_dir, "processed_passages")
+
     # 'processed_passages' 디렉터리에서 파일을 찾음
     for f in glob(f"{passages_dir}/*.p"):
         file_name = os.path.basename(f)
@@ -170,15 +170,12 @@ if __name__ == "__main__":
     valid_dataset = KorQuadDataset("./data/KorQuAD_v1.0_dev.json")
     index = DenseFlatIndexer()
     index.deserialize(path="./2050iter_flat")
-    
-    retriever = KorDPRRetriever(
-        model=model, 
-        valid_dataset=valid_dataset, 
-        index=index)
+
+    retriever = KorDPRRetriever(model=model, valid_dataset=valid_dataset, index=index)
 
     # 'query'와 'k' 값을 설정합니다.
     query = "(가)이/가 크게 노하여 한성부의 조례(皂隷)와 병졸로 하여 금 한 강 밖으로 몰아내게 하고 드디어 천여 곳의 서원을 철폐하고 그 토지를 몰수하여 관에 속하게 하였다.－대한계년사 －"
-    #query = "성학집요의 저자는?"
+    # query = "성학집요의 저자는?"
     k = 10  # 상위 20개 유사한 passage를 출력하려면 k를 20으로 설정
 
     # retrieve 메서드를 호출하여 가장 유사도가 높은 k개의 passage를 찾습니다.

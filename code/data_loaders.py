@@ -1,18 +1,20 @@
 from ast import literal_eval
 import os
-from typing import Dict, List
 import pickle
+from typing import Dict, List
+
 from datasets import Dataset
 from dotenv import load_dotenv
 from loguru import logger
 import numpy as np
 import pandas as pd
 from rag import ElasticsearchRetriever, Reranker
-from utils import load_config
 from rag.dpr_data import KorQuadDataset
 from rag.encoder import KobertBiEncoder
 from rag.indexers import DenseFlatIndexer
-from rag.retriever import KorDPRRetriever,KobertBiEncoder,get_passage_file
+from rag.retriever import KobertBiEncoder, KorDPRRetriever, get_passage_file
+from utils import load_config
+
 
 class DataLoader:
     def __init__(self, tokenizer, data_config):
@@ -48,7 +50,6 @@ class DataLoader:
         elif self.retriever_config["retriever_type"] == "DPR":
             # KorDPRRetriever 사용
             try:
-                print("Why!!!!!!!")
                 model = KobertBiEncoder()  # 모델 초기화
                 model.load("./rag/output/my_model.pt")  # 모델 불러오기
                 print("Model loaded successfully.")
@@ -90,7 +91,7 @@ class DataLoader:
         query_max_length = self.retriever_config["query_max_length"]
 
         queries = df.apply(_combine_text, axis=1)
-        if self.retriever_config["retriever_type"]=="Elasticsearch":
+        if self.retriever_config["retriever_type"] == "Elasticsearch":
             filtered_queries = [(i, q) for i, q in enumerate(queries) if len(q) <= query_max_length]
             if not filtered_queries:
                 return [""] * len(queries)
@@ -125,8 +126,6 @@ class DataLoader:
                     # 로깅 추가
                     logger.info(f"가연 Query: {query}")
                     logger.info(f"Rank {idx+1}: Score: {score:.4f}, Passage: {passage}")
-
-
 
         return docs
 
@@ -278,7 +277,7 @@ if __name__ == "__main__":
             )
         elif retriever_config["retriever_type"] == "BM25":
             raise NotImplementedError("BM25는 더 이상 지원하지 않습니다. Elasticsearch를 사용해주세요...")
-        
+
         elif retriever_config["retriever_type"] == "DPR":
             # KorDPRRetriever 사용
             try:
@@ -339,7 +338,9 @@ if __name__ == "__main__":
 
             docs = [""] * len(queries)
             for idx, result in zip(indices, retrieve_results):
-                docs[idx] = " ".join(f"[{item['score']}]: {item['text']}" for item in result if item["score"] >= threshold)
+                docs[idx] = " ".join(
+                    f"[{item['score']}]: {item['text']}" for item in result if item["score"] >= threshold
+                )
 
         elif retriever_config["retriever_type"] == "DPR":  # DPR인 경우
             docs = []

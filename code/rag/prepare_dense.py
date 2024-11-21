@@ -91,7 +91,7 @@ if __name__ == "__main__":
         )
 
         # 학습 상태 불러오기
-        #my_trainer.load_training_state()
+        # my_trainer.load_training_state()
 
         # 학습 시작
         my_trainer.fit()

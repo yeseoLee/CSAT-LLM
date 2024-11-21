@@ -5,7 +5,7 @@ import os
 import pickle
 
 from tqdm import tqdm
-from transformers import AutoTokenizer  # Hugging Face의 AutoTokenizer를 사용합니다.
+from transformers import AutoTokenizer
 
 
 os.makedirs("logs", exist_ok=True)

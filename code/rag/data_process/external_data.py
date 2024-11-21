@@ -16,9 +16,10 @@ def preprocess_text(text):
     text = re.sub(r'[^ㄱ-ㅎ가-힣0-9!"#%&\'(),-./:;<=>?@[\]^_`{|}~\s]', '', text)
 
     # 내용이 빈 괄호 제거
-    pattern = r'\(\)'
+    pattern = r'\(\s*\)'
     while re.search(pattern, text):
         text = re.sub(pattern, '', text)
+    
     return text
 
 def process_json_array(json_data):

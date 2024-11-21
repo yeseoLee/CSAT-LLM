@@ -3,10 +3,12 @@ import os
 from typing import Dict, List
 
 from datasets import Dataset
+from dotenv import load_dotenv
 from loguru import logger
 import numpy as np
 import pandas as pd
 from rag import ElasticsearchRetriever, Reranker
+from utils import load_config
 
 
 class DataLoader:
@@ -209,3 +211,65 @@ class DataLoader:
         logger.info(f"avg token length: {np.mean(train_dataset_token_lengths)}")
 
         return train_dataset, eval_dataset
+
+
+if __name__ == "__main__":
+    config_folder = os.path.join(os.path.dirname(__file__), "..", "config/")
+    load_dotenv(os.path.join(config_folder, ".env"))
+    config = load_config()
+    data_config = config["data"]
+
+    def _retrieve(retriever_config, df):
+        if retriever_config["retriever_type"] == "Elasticsearch":
+            retriever = ElasticsearchRetriever(
+                index_name=retriever_config["index_name"],
+            )
+        elif retriever_config["retriever_type"] == "BM25":
+            raise NotImplementedError("BM25는 더 이상 지원하지 않습니다. Elasticsearch를 사용해주세요...")
+        else:
+            return [""] * len(df)
+
+        def _combine_text(row):
+            if retriever_config["query_type"] == "pqc":
+                return row["paragraph"] + " " + row["problems"]["question"] + " " + " ".join(row["problems"]["choices"])
+            if retriever_config["query_type"] == "pq":
+                return row["paragraph"] + " " + row["problems"]["question"]
+            if retriever_config["query_type"] == "pc":
+                return row["paragraph"] + " " + " ".join(row["problems"]["choices"])
+            else:
+                return row["paragraph"]
+
+        top_k = retriever_config["top_k"]
+        threshold = retriever_config["threshold"]
+        query_max_length = retriever_config["query_max_length"]
+
+        queries = df.apply(_combine_text, axis=1)
+        filtered_queries = [(i, q) for i, q in enumerate(queries) if len(q) <= query_max_length]
+        if not filtered_queries:
+            return [""] * len(queries)
+
+        indices, valid_queries = zip(*filtered_queries)
+        retrieve_results = retriever.bulk_retrieve(valid_queries, top_k)
+        rerank_k = retriever_config["rerank_k"]
+        if rerank_k > 0:
+            with Reranker() as reranker:
+                retrieve_results = reranker.rerank(valid_queries, retrieve_results, rerank_k)
+        # [[{"text":"안녕하세요", "score":0.5}, {"text":"반갑습니다", "score":0.3},],]
+
+        docs = [""] * len(queries)
+        for idx, result in zip(indices, retrieve_results):
+            docs[idx] = " ".join(f"[{item['score']}]: {item['text']}" for item in result if item["score"] >= threshold)
+
+        return docs
+
+    def load_and_save(retriever_config, file_path) -> List[Dict]:
+        """csv를 읽어오고 dictionary 배열 형태로 변환합니다."""
+        df = pd.read_csv(file_path)
+        df["problems"] = df["problems"].apply(literal_eval)
+        docs = _retrieve(retriever_config, df)
+        df["documents"] = docs
+        df.to_csv(file_path.replace(".csv", "_retrieve.csv"), index=False)
+        logger.debug("retrieve 결과가 csv로 저장되었습니다.")
+
+    load_and_save(data_config["retriever"], data_config["train_path"])
+    load_and_save(data_config["retriever"], data_config["test_path"])

@@ -27,7 +27,10 @@ class Reranker:
         self.batch_size = batch_size
         self.max_length = max_length
 
-    def __exit__(self):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
         # GPU 메모리 정리
         del self.model
         del self.tokenizer

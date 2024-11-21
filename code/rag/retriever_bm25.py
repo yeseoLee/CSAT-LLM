@@ -3,7 +3,6 @@ import os
 import pickle
 from typing import Dict, List, Optional
 
-from datasets import load_dataset
 from loguru import logger
 import numpy as np
 from rank_bm25 import BM25Okapi
@@ -19,11 +18,11 @@ from rank_bm25 import BM25Okapi
 #     return filtered_words
 
 
+# Deprecated: 너무 느려서 더 이상 사용하지 않습니다.
 class BM25Retriever:
     def __init__(
         self,
         tokenize_fn=None,
-        doc_type: str = "wikipedia",
         data_path: Optional[str] = "../data/",
         pickle_filename: str = "wiki_bm25.pkl",
         doc_filename: Optional[str] = "wiki_document.json",
@@ -34,7 +33,7 @@ class BM25Retriever:
         self.corpus = []
 
         # 데이터셋 로드
-        self._load_dataset(doc_type, os.path.join(data_path, doc_filename))
+        self._load_dataset(os.path.join(data_path, doc_filename))
 
         # 기존 인덱스 로드
         if os.path.exists(self.pickle_path):
@@ -44,17 +43,10 @@ class BM25Retriever:
         # 인덱스 생성
         self._initialize_retriever()
 
-    def _load_dataset(self, doc_type, json_path):
-        if doc_type == "wikipedia":
-            logger.info("위키피디아 데이터셋 로드")
-            with open(json_path, "r", encoding="utf-8") as f:
-                docs = json.load(f)
-        elif doc_type == "namuwiki":
-            logger.info("나무위키 데이터셋 로드")
-            dataset = load_dataset("heegyu/namuwiki-extracted")
-            docs = dataset["train"]
-        else:
-            raise Exception(f"정의되지 않은 doc_type: {doc_type}")
+    def _load_dataset(self, json_path):
+        logger.info("문서 데이터셋 로드")
+        with open(json_path, "r", encoding="utf-8") as f:
+            docs = json.load(f)
         self.corpus = [f"{doc['title']}: {doc['text']}" for doc in docs]
 
     def _load_pickle(self):
@@ -134,7 +126,6 @@ if __name__ == "__main__":
     os.chdir("..")
     retriever = BM25Retriever(
         tokenize_fn=None,
-        doc_type="wikipedia",
         data_path="../data/",
         pickle_filename="wiki_bm25.pkl",
         doc_filename="wiki.json",

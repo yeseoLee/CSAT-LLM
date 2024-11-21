@@ -22,7 +22,6 @@ def main():
     load_env_file()
     config = load_config()
     set_logger(log_file=config["log"]["file"], log_level=config["log"]["level"])
-    log_config(config)
     set_seed()
 
     # wandb 설정
@@ -37,6 +36,7 @@ def main():
     # wandb 실험명으로 config 갱신
     config["training"]["run_name"] = exp_name
     config["inference"]["output_path"] = os.path.join(config["inference"]["output_path"], exp_name + "_output.csv")
+    log_config(config)
 
     try:
         # 모델 및 토크나이저 설정

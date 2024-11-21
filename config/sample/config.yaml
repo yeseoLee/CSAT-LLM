@@ -1,34 +1,35 @@
 data:
   train_path: "../data/train.csv"
   test_path: "../data/test.csv"
+  processed_train_path: "../data/train_processed.csv" # 비워두면 동작하지 않음
+  processed_test_path: "../data/test_processed.csv" # 비워두면 동작하지 않음
   max_seq_length: 2048
   test_size: 0.1
   retriever:
-    retriever_type: "" # BM25
+    retriever_type: "" # Elasticsearch
+    query_type: "p" # pqc, pq, pc, p
+    query_max_length: 250 # 250-500 권장
     top_k: 1
+    rerank_k: 0 # 0 이하는 reranker 동작하지 않음
     threshold: 0.0
-    doc_type: "wikipedia"
-    data_path: "../data/"
-    pickle_filename: "wiki_mrc_bm25.pkl"
-    doc_filename: "wiki_mrc.json"
+    index_name: "wiki-index"
   prompt:
     start: "지문:\n {paragraph}\n\n질문:\n {question}\n\n선택지:\n {choices}\n\n"
     start_with_plus: "지문:\n {paragraph}\n\n질문:\n {question}\n\n<보기>:\n {question_plus}\n\n선택지:\n {choices}\n\n"
     mid: ""
-    mid_with_document: "힌트:\n {document}\n\n 힌트는 지문 내에서 답을 찾을 수 없을 때만 참고하세요.\n"
-    end: "1, 2, 3, 4, 5 중에 하나를 정답으로 고르세요. Let's think step by step.\n정답:"
+    mid_with_document: "힌트:\n {document}\n\n"
+    end: "1, 2, 3, 4, 5 중에 하나를 정답으로 고르세요.\n정답:"
     end_gen_cot: "1, 2, 3, 4, 5 중에 하나를 정답으로 고르기 위한 근거를 차근차근 생각해보세요.\n근거:"
     end_with_cot: "1, 2, 3, 4, 5 중에 하나를 정답으로 고르세요.\n{cot}\n정답:"
-
 
 model:
   base_model: "beomi/gemma-ko-2b"
   model:
     torch_dtype: "float16"
     low_cpu_mem_usage: true
-    use_cache: true # gradient_checkpointing이 true면 false여야함
-    quantization: "" # BitsAndBytes
-    bits: 8 # 8, 4, 2
+    use_cache: false # gradient_checkpointing이 true면 false여야함
+    quantization: "" # BitsAndBytes, auto
+    bits: 8 # 8 or 4
     use_double_quant: false
   tokenizer:
     padding_side: "right"
@@ -48,21 +49,21 @@ training:
     do_train: true
     do_eval: true
     lr_scheduler_type: "cosine"
-    max_seq_length: 1024
+    max_seq_length: 2048
     per_device_train_batch_size: 1
     per_device_eval_batch_size: 1
     gradient_accumulation_steps: 1
-    gradient_checkpointing: false
+    gradient_checkpointing: true
     max_grad_norm: 0.3
     num_train_epochs: 3
     learning_rate: 2.0e-05
     weight_decay: 0.01
-    logging_strategy: "epoch"
-    save_strategy: "epoch"
-    eval_strategy: "epoch"
-    logging_steps: 200
-    save_steps: 377
-    eval_steps: 200
+    logging_strategy: "steps"
+    save_strategy: "steps"
+    eval_strategy: "steps"
+    logging_steps: 300
+    save_steps: 600
+    eval_steps: 300
     save_total_limit: 4
     save_only_model: true
     report_to: "wandb"

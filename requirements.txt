@@ -3,9 +3,12 @@
 # python 3.10.13
 
 # Deep Learning
+auto_gptq==0.7.1
+autoawq==0.2.7.post2
 bitsandbytes==0.44.1
 evaluate==0.4.3
 huggingface-hub==0.26.2
+optimum==1.23.3
 peft==0.5.0
 scikit-learn==1.5.2
 torch==2.5.1 # 2.5.1+cu124

@@ -1,12 +1,13 @@
 import json
 import os
+from pathlib import Path
 import re
 import urllib.request
 
 from loguru import logger
 
 
-def dump_wiki(data_path: str = "../data"):
+def _dump_wiki(data_path: str = "../data"):
     """
     위키피디아 덤프를 다운로드하고 추출하는 함수
     """
@@ -53,7 +54,7 @@ def dump_wiki(data_path: str = "../data"):
     logger.debug(f"모든 내용이 {output_path} 파일에 저장되었습니다.")
 
 
-def parse_wiki_dump(file_path: str = "../data/wiki_dump.txt"):
+def _parse_wiki_dump(file_path: str = "../data/wiki_dump.txt"):
     """
     위키피디아 덤프 파일을 JSON 형식으로 변환하는 함수
     """
@@ -87,7 +88,67 @@ def parse_wiki_dump(file_path: str = "../data/wiki_dump.txt"):
     return documents
 
 
+def wikipedia():
+    """
+    위키피디아 한국어 덤프 문서를 가져오고 파싱하여 하나의 JSON 파일 생성
+    """
+    _dump_wiki()
+    _parse_wiki_dump()
+
+
+def ai_hub_news_corpus(input_dir: str, output_file: str):
+    """
+    대규모 웹데이터 기반 한국어 말뭉치 데이터
+    \n https://www.aihub.or.kr/aihubdata/data/view.do?currMenu=115&topMenu=100&dataSetSn=624
+    \n 지정된 디렉토리의 모든 JSON 파일을 처리하여 하나의 JSON 파일로 통합
+    Args:
+        input_dir: 입력 JSON 파일들이 있는 디렉토리 경로
+        output_file: 출력될 통합 JSON 파일 경로
+    """
+    all_documents = []
+    input_path = Path(input_dir)
+
+    try:
+        # 입력 디렉토리 내의 모든 JSON 파일 처리
+        for json_file in input_path.glob("**/*.json"):
+            logger.info(f"처리 중인 파일: {json_file}")
+
+            try:
+                with open(json_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+
+                # SJML 구조 확인 및 데이터 추출
+                if "SJML" in data and "text" in data["SJML"]:
+                    for doc in data["SJML"]["text"]:
+                        processed_doc = {"title": doc["title"], "text": doc["content"]}
+                        all_documents.append(processed_doc)
+                else:
+                    logger.warning(f"잘못된 JSON 구조: {json_file}")
+
+            except json.JSONDecodeError:
+                logger.error(f"JSON 파싱 오류: {json_file}")
+            except Exception as e:
+                logger.error(f"파일 처리 중 오류 발생: {json_file}, 오류: {str(e)}")
+
+        # 최종 결과를 단일 JSON 파일로 저장
+        if all_documents:
+            with open(output_file, "w", encoding="utf-8") as f:
+                json.dump(all_documents, f, ensure_ascii=False, indent=2)
+            logger.info(f"처리 완료: 총 {len(all_documents)}개 문서가 {output_file}에 저장됨")
+        else:
+            logger.warning("처리된 문서가 없습니다.")
+
+    except Exception as e:
+        logger.error(f"전체 처리 과정 중 오류 발생: {str(e)}")
+
+
 if __name__ == "__main__":
-    os.chdir("..")
-    dump_wiki()
-    parse_wiki_dump()
+    os.chdir("../../")
+
+    WIKIPEDIA = False
+    AI_HUB_NEWS_CORPUS = False
+
+    if WIKIPEDIA:
+        wikipedia()
+    if AI_HUB_NEWS_CORPUS:
+        ai_hub_news_corpus("../data/ai_hub_news_corpus", "../data/ai_hub_news_corpus.json")

@@ -1,32 +1,142 @@
 from ast import literal_eval
+import os
+import pickle
+from typing import Dict, List
 
 from datasets import Dataset
+from dotenv import load_dotenv
 from loguru import logger
 import numpy as np
 import pandas as pd
+from rag import ElasticsearchRetriever, Reranker
+from rag.dpr_data import KorQuadDataset
+from rag.encoder import KobertBiEncoder
+from rag.indexers import DenseFlatIndexer
+from rag.retriever import KobertBiEncoder, KorDPRRetriever, get_passage_file
+from utils import load_config
 
 
 class DataLoader:
-    def __init__(self, data_config):
+    def __init__(self, tokenizer, data_config):
+        self.tokenizer = tokenizer
+        self.retriever_config = data_config["retriever"]
         self.train_path = data_config["train_path"]
         self.test_path = data_config["test_path"]
+        self.processed_train_path = data_config["processed_train_path"]
+        self.processed_test_path = data_config["processed_test_path"]
         self.max_seq_length = data_config["max_seq_length"]
         self.test_size = data_config["test_size"]
-        self.prompt_no_question = data_config["prompt"]["no_question"]
-        self.prompt_with_question = data_config["prompt"]["with_question"]
+        self.prompt_config = data_config["prompt"]
 
-    def prepare_datasets(self):
-        df = self._load_data(self.train_path)
-        dataset = Dataset.from_pandas(df)
-        processed_dataset = self._process_dataset(dataset)
-        tokenized_dataset = self._tokenize_dataset(processed_dataset)
-        return self._split_dataset(tokenized_dataset)
+    def prepare_datasets(self, is_train=True):
+        """학습 또는 테스트용 데이터셋 준비"""
+        if is_train:
+            dataset = self._load_data(self.train_path)
+            processed_dataset = self._process_dataset(dataset)
+            tokenized_dataset = self._tokenize_dataset(processed_dataset)
+            return self._split_dataset(tokenized_dataset)
+        else:
+            dataset = self._load_data(self.test_path)
+            processed_dataset = self._process_dataset(dataset, is_train=False)
+            return processed_dataset
 
-    def _load_data(self, file_path):
+    def _retrieve(self, df):
+        if self.retriever_config["retriever_type"] == "Elasticsearch":
+            retriever = ElasticsearchRetriever(
+                index_name=self.retriever_config["index_name"],
+            )
+        elif self.retriever_config["retriever_type"] == "BM25":
+            raise NotImplementedError("BM25는 더 이상 지원하지 않습니다. Elasticsearch를 사용해주세요...")
+        elif self.retriever_config["retriever_type"] == "DPR":
+            # KorDPRRetriever 사용
+            try:
+                model = KobertBiEncoder()  # 모델 초기화
+                model.load("./rag/output/my_model.pt")  # 모델 불러오기
+                print("Model loaded successfully.")
+                assert model is not None, "Model is None after loading."
+            except Exception as e:
+                print(f"Error while loading model: {e}")
+
+            try:
+                valid_dataset = KorQuadDataset("./rag/data/KorQuAD_v1.0_dev.json")  # 데이터셋 준비
+                print("Valid dataset loaded successfully.")
+            except Exception as e:
+                print(f"Error while loading valid dataset: {e}")
+
+            try:
+                index = DenseFlatIndexer()  # 인덱스 준비
+                index.deserialize(path="./rag/2050iter_flat/")
+                print("Index loaded successfully.")
+                assert index is not None, "Index is None after loading."
+            except Exception as e:
+                print(f"Error while loading index: {e}")
+
+            ds_retriever = KorDPRRetriever(model=model, valid_dataset=valid_dataset, index=index)
+            print("KorDPRRetriever initialized successfully.")
+        else:
+            return [""] * len(df)
+
+        def _combine_text(row):
+            if self.retriever_config["query_type"] == "pqc":
+                return row["paragraph"] + " " + row["problems"]["question"] + " " + " ".join(row["problems"]["choices"])
+            if self.retriever_config["query_type"] == "pq":
+                return row["paragraph"] + " " + row["problems"]["question"]
+            if self.retriever_config["query_type"] == "pc":
+                return row["paragraph"] + " " + " ".join(row["problems"]["choices"])
+            else:
+                return row["paragraph"]
+
+        top_k = self.retriever_config["top_k"]
+        threshold = self.retriever_config["threshold"]
+        query_max_length = self.retriever_config["query_max_length"]
+
+        queries = df.apply(_combine_text, axis=1)
+        if self.retriever_config["retriever_type"] == "Elasticsearch":
+            filtered_queries = [(i, q) for i, q in enumerate(queries) if len(q) <= query_max_length]
+            if not filtered_queries:
+                return [""] * len(queries)
+
+            indices, valid_queries = zip(*filtered_queries)
+            retrieve_results = retriever.bulk_retrieve(valid_queries, top_k)
+            rerank_k = self.retriever_config["rerank_k"]
+            if rerank_k > 0:
+                with Reranker() as reranker:
+                    retrieve_results = reranker.rerank(valid_queries, retrieve_results, rerank_k)
+            # [[{"text":"안녕하세요", "score":0.5}, {"text":"반갑습니다", "score":0.3},],]
+
+            docs = [""] * len(queries)
+            for idx, result in zip(indices, retrieve_results):
+                docs[idx] = " ".join(item["text"] for item in result if item["score"] >= threshold)
+        elif self.retriever_config["retriever_type"] == "DPR":  # DPR인 경우
+            docs = []
+            for query in queries:
+                passages = ds_retriever.retrieve(query=query, k=top_k)  # DPR으로 검색
+
+                # passage 로딩 및 결합
+                for idx, (passage, score) in enumerate(passages):
+                    # passage ID에 해당하는 파일 경로 가져오기
+                    path = get_passage_file([idx])
+                    if path:
+                        with open(path, "rb") as f:
+                            passage_dict = pickle.load(f)
+                            docs.append((passage_dict[idx], score))  # passage와 score 저장
+                    else:
+                        print(f"No passage found for ID: {idx}")
+
+                    # 로깅 추가
+                    logger.info(f"가연 Query: {query}")
+                    logger.info(f"Rank {idx+1}: Score: {score:.4f}, Passage: {passage}")
+
+        return docs
+
+    def _load_data(self, file_path) -> List[Dict]:
+        """csv를 읽어오고 dictionary 배열 형태로 변환합니다."""
         df = pd.read_csv(file_path)
+        df["problems"] = df["problems"].apply(literal_eval)
+        docs = self._retrieve(df)
         records = []
-        for _, row in df.iterrows():
-            problems = literal_eval(row["problems"])
+        for idx, row in df.iterrows():
+            problems = row["problems"]
             record = {
                 "id": row["id"],
                 "paragraph": row["paragraph"],
@@ -34,44 +144,70 @@ class DataLoader:
                 "choices": problems["choices"],
                 "answer": problems.get("answer", None),
                 "question_plus": problems.get("question_plus", None),
+                "document": docs[idx],
             }
             records.append(record)
-        return pd.DataFrame(records)
+        logger.info("dataset 로드 및 retrive 완료.")
+        return records
 
-    def _process_dataset(self, dataset):
-        processed_dataset = []
-        for i in range(len(dataset)):
-            choices_string = "\n".join([f"{idx + 1} - {choice}" for idx, choice in enumerate(dataset[i]["choices"])])
+    def _process_dataset(self, dataset: List[Dict], is_train=True):
+        """데이터에 프롬프트 적용"""
 
-            # <보기>가 있을 때
-            if dataset[i]["question_plus"]:
-                user_message = self.prompt_with_question.format(
-                    paragraph=dataset[i]["paragraph"],
-                    question=dataset[i]["question"],
-                    question_plus=dataset[i]["question_plus"],
+        # prompt 전처리된 데이터셋 파일이 존재한다면 이를 로드합니다.
+        processed_df_path = self.processed_train_path if is_train else self.processed_test_path
+        if os.path.isfile(processed_df_path):
+            logger.info(f"전처리된 데이터셋을 불러옵니다: {processed_df_path}")
+            processed_df = pd.read_csv(processed_df_path, encoding="utf-8")
+            processed_df["messages"] = processed_df["messages"].apply(literal_eval)
+            return Dataset.from_pandas(processed_df)
+
+        # 데이터셋을 prompt 전처리하고 저장합니다.
+        logger.info("데이터셋 전처리를 수행합니다.")
+        processed_data = []
+        for row in dataset:
+            choices_string = "\n".join([f"{idx + 1} - {choice}" for idx, choice in enumerate(row["choices"])])
+
+            # start
+            if row["question_plus"]:
+                message_start = self.prompt_config["start_with_plus"].format(
+                    paragraph=row["paragraph"],
+                    question=row["question"],
+                    question_plus=row["question_plus"],
                     choices=choices_string,
                 )
-            # <보기>가 없을 때
             else:
-                user_message = self.prompt_no_question.format(
-                    paragraph=dataset[i]["paragraph"],
-                    question=dataset[i]["question"],
+                message_start = self.prompt_config["start"].format(
+                    paragraph=row["paragraph"],
+                    question=row["question"],
                     choices=choices_string,
                 )
+            # mid
+            if row["document"]:
+                message_mid = self.prompt_config["mid_with_document"].format(
+                    document=row["document"],
+                )
+            else:
+                message_mid = self.prompt_config["start"]
+            # end
+            message_end = self.prompt_config["end"]
 
-            # chat message 형식으로 변환
-            processed_dataset.append(
-                {
-                    "id": dataset[i]["id"],
-                    "messages": [
-                        {"role": "system", "content": "지문을 읽고 질문의 답을 구하세요."},
-                        {"role": "user", "content": user_message},
-                        {"role": "assistant", "content": f"{dataset[i]['answer']}"},
-                    ],
-                    "label": dataset[i]["answer"],
-                }
-            )
-        return Dataset.from_pandas(pd.DataFrame(processed_dataset))
+            user_message = message_start + message_mid + message_end
+            messages = [
+                {"role": "system", "content": "지문을 읽고 질문의 답을 구하세요."},
+                {"role": "user", "content": user_message},
+            ]
+
+            if is_train:
+                messages.append({"role": "assistant", "content": f"{row['answer']}"})
+
+            processed_data.append({"id": row["id"], "messages": messages, "label": row["answer"] if is_train else None})
+
+        processed_df = pd.DataFrame(processed_data)
+        logger.info("데이터셋 전처리가 완료되었습니다.")
+        if processed_df_path:
+            processed_df.to_csv(processed_df_path, index=False, encoding="utf-8")
+            logger.info("전처리된 데이터셋이 저장되었습니다.")
+        return Dataset.from_pandas(processed_df)
 
     def _tokenize_dataset(self, dataset):
         def formatting_prompts_func(example):
@@ -108,8 +244,9 @@ class DataLoader:
         )
 
         # 토큰 길이가 max_seq_length를 초과하는 데이터 필터링
-        # 힌트: 1024보다 길이가 더 긴 데이터를 포함하면 더 높은 점수를 달성할 수 있을 것 같습니다!
+        logger.info(f"dataset length: {len(tokenized_dataset)}")
         tokenized_dataset = tokenized_dataset.filter(lambda x: len(x["input_ids"]) <= self.max_seq_length)
+        logger.info(f"filtered dataset length: {len(tokenized_dataset)}")
 
         return tokenized_dataset
 
@@ -125,3 +262,115 @@ class DataLoader:
         logger.info(f"avg token length: {np.mean(train_dataset_token_lengths)}")
 
         return train_dataset, eval_dataset
+
+
+if __name__ == "__main__":
+    config_folder = os.path.join(os.path.dirname(__file__), "..", "config/")
+    load_dotenv(os.path.join(config_folder, ".env"))
+    config = load_config()
+    data_config = config["data"]
+
+    def _retrieve(retriever_config, df):
+        if retriever_config["retriever_type"] == "Elasticsearch":
+            retriever = ElasticsearchRetriever(
+                index_name=retriever_config["index_name"],
+            )
+        elif retriever_config["retriever_type"] == "BM25":
+            raise NotImplementedError("BM25는 더 이상 지원하지 않습니다. Elasticsearch를 사용해주세요...")
+
+        elif retriever_config["retriever_type"] == "DPR":
+            # KorDPRRetriever 사용
+            try:
+                model = KobertBiEncoder()  # 모델 초기화
+                model.load("./rag/output/my_model.pt")  # 모델 불러오기
+                print("Model loaded successfully.")
+                assert model is not None, "Model is None after loading."
+            except Exception as e:
+                print(f"Error while loading model: {e}")
+
+            try:
+                valid_dataset = KorQuadDataset("./rag/data/KorQuAD_v1.0_dev.json")  # 데이터셋 준비
+                print("Valid dataset loaded successfully.")
+            except Exception as e:
+                print(f"Error while loading valid dataset: {e}")
+
+            try:
+                index = DenseFlatIndexer()  # 인덱스 준비
+                index.deserialize(path="./rag/2050iter_flat/")
+                print("Index loaded successfully.")
+                assert index is not None, "Index is None after loading."
+            except Exception as e:
+                print(f"Error while loading index: {e}")
+
+            ds_retriever = KorDPRRetriever(model=model, valid_dataset=valid_dataset, index=index)
+            print("KorDPRRetriever initialized successfully.")
+
+        else:
+            return [""] * len(df)
+
+        def _combine_text(row):
+            if retriever_config["query_type"] == "pqc":
+                return row["paragraph"] + " " + row["problems"]["question"] + " " + " ".join(row["problems"]["choices"])
+            if retriever_config["query_type"] == "pq":
+                return row["paragraph"] + " " + row["problems"]["question"]
+            if retriever_config["query_type"] == "pc":
+                return row["paragraph"] + " " + " ".join(row["problems"]["choices"])
+            else:
+                return row["paragraph"]
+
+        top_k = retriever_config["top_k"]
+        threshold = retriever_config["threshold"]
+        query_max_length = retriever_config["query_max_length"]
+
+        queries = df.apply(_combine_text, axis=1)
+        if retriever_config["retriever_type"] == "Elasticsearch":
+            filtered_queries = [(i, q) for i, q in enumerate(queries) if len(q) <= query_max_length]
+            if not filtered_queries:
+                return [""] * len(queries)
+
+            indices, valid_queries = zip(*filtered_queries)
+            retrieve_results = retriever.bulk_retrieve(valid_queries, top_k)
+            rerank_k = retriever_config["rerank_k"]
+            if rerank_k > 0:
+                with Reranker() as reranker:
+                    retrieve_results = reranker.rerank(valid_queries, retrieve_results, rerank_k)
+            # [[{"text":"안녕하세요", "score":0.5}, {"text":"반갑습니다", "score":0.3},],]
+
+            docs = [""] * len(queries)
+            for idx, result in zip(indices, retrieve_results):
+                docs[idx] = " ".join(
+                    f"[{item['score']}]: {item['text']}" for item in result if item["score"] >= threshold
+                )
+
+        elif retriever_config["retriever_type"] == "DPR":  # DPR인 경우
+            docs = []
+            for query in queries:
+                passages = ds_retriever.retrieve(query=query, k=top_k)  # DPR으로 검색
+
+                # passage 로딩 및 결합
+                for idx, (passage, score) in enumerate(passages):
+                    # passage ID에 해당하는 파일 경로 가져오기
+                    path = get_passage_file([idx])
+                    if path:
+                        with open(path, "rb") as f:
+                            passage_dict = pickle.load(f)
+                            docs.append((passage_dict[idx], score))  # passage와 score 저장
+                    else:
+                        print(f"No passage found for ID: {idx}")
+
+                    # 로깅 추가
+                    logger.info(f"Query: {query}")
+                    logger.info(f"Rank {idx+1}: Score: {score:.4f}, Passage: {passage}")
+        return docs
+
+    def load_and_save(retriever_config, file_path) -> List[Dict]:
+        """csv를 읽어오고 dictionary 배열 형태로 변환합니다."""
+        df = pd.read_csv(file_path)
+        df["problems"] = df["problems"].apply(literal_eval)
+        docs = _retrieve(retriever_config, df)
+        df["documents"] = docs
+        df.to_csv(file_path.replace(".csv", "_retrieve.csv"), index=False)
+        logger.debug("retrieve 결과가 csv로 저장되었습니다.")
+
+    load_and_save(data_config["retriever"], data_config["train_path"])
+    load_and_save(data_config["retriever"], data_config["test_path"])

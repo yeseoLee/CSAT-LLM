@@ -1,10 +1,13 @@
 # Custom
+.idea/
 **/data/
 **/output/
 **/outputs/
 **/wandb/
 **/*.out
 config/*.yaml
+config/token.json
+config/credentials.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

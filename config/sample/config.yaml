@@ -1,20 +1,42 @@
 data:
   train_path: "../data/train.csv"
   test_path: "../data/test.csv"
-  max_seq_length: 1024
+  processed_train_path: "../data/train_processed.csv" # 비워두면 동작하지 않음
+  processed_test_path: "../data/test_processed.csv" # 비워두면 동작하지 않음
+  max_seq_length: 2048
   test_size: 0.1
+  retriever:
+    retriever_type: "" # Elasticsearch
+    query_type: "p" # pqc, pq, pc, p
+    query_max_length: 250 # 250-500 권장
+    top_k: 1
+    rerank_k: 0 # 0 이하는 reranker 동작하지 않음
+    threshold: 0.0
+    index_name: "wiki-index"
   prompt:
-    no_question: "지문:\n {paragraph}\n\n 질문:\n {question}\n\n 선택지:\n {choices}\n\n 1, 2, 3, 4, 5 중에 하나를 정답으로 고르세요.\n 정답:"
-    with_question: "지문:\n {paragraph}\n\n 질문:\n {question}\n\n <보기>:\n {question_plus}\n\n 선택지:\n {choices}\n\n 1, 2, 3, 4, 5 중에 하나를 정답으로 고르세요.\n 정답:"
+    start: "지문:\n {paragraph}\n\n질문:\n {question}\n\n선택지:\n {choices}\n\n"
+    start_with_plus: "지문:\n {paragraph}\n\n질문:\n {question}\n\n<보기>:\n {question_plus}\n\n선택지:\n {choices}\n\n"
+    mid: ""
+    mid_with_document: "힌트:\n {document}\n\n"
+    end: "1, 2, 3, 4, 5 중에 하나를 정답으로 고르세요.\n정답:"
+    end_gen_cot: "1, 2, 3, 4, 5 중에 하나를 정답으로 고르기 위한 근거를 차근차근 생각해보세요.\n근거:"
+    end_with_cot: "1, 2, 3, 4, 5 중에 하나를 정답으로 고르세요.\n{cot}\n정답:"
 
 model:
   base_model: "beomi/gemma-ko-2b"
-  torch_dtype: "float16"
+  model:
+    torch_dtype: "float16"
+    low_cpu_mem_usage: true
+    use_cache: false # gradient_checkpointing이 true면 false여야함
+    quantization: "" # BitsAndBytes, auto
+    bits: 8 # 8 or 4
+    use_double_quant: false
   tokenizer:
     padding_side: "right"
     chat_template: "{% if messages[0]['role'] == 'system' %}{% set system_message = messages[0]['content'] %}{% endif %}{% if system_message is defined %}{{ system_message }}{% endif %}{% for message in messages %}{% set content = message['content'] %}{% if message['role'] == 'user' %}{{ '<start_of_turn>user\n' + content + '<end_of_turn>\n<start_of_turn>model\n' }}{% elif message['role'] == 'assistant' %}{{ content + '<end_of_turn>\n' }}{% endif %}{% endfor %}"
 
 training:
+  response_template: "<start_of_turn>model"
   lora:
     r: 6
     lora_alpha: 8
@@ -27,25 +49,41 @@ training:
     do_train: true
     do_eval: true
     lr_scheduler_type: "cosine"
-    max_seq_length: 1024
+    max_seq_length: 2048
     per_device_train_batch_size: 1
     per_device_eval_batch_size: 1
+    gradient_accumulation_steps: 1
+    gradient_checkpointing: true
+    max_grad_norm: 0.3
     num_train_epochs: 3
     learning_rate: 2.0e-05
     weight_decay: 0.01
-    logging_steps: 1
-    save_strategy: "epoch"
-    eval_strategy: "epoch"
-    save_total_limit: 2
+    logging_strategy: "steps"
+    save_strategy: "steps"
+    eval_strategy: "steps"
+    logging_steps: 300
+    save_steps: 600
+    eval_steps: 300
+    save_total_limit: 4
     save_only_model: true
-    report_to: "none"
+    report_to: "wandb"
+    run_name: "../outputs" # wandb 세팅이 존재한다면 동적으로 생성됩니다.
     output_dir: "../outputs"
     overwrite_output_dir: true
 
 
 inference:
-  output_path: "../outputs/output.csv"
+  do_test: true
+  output_path: "../outputs/"
 
 log:
   file: "../log/file.log"
-  level: "DEBUG"
+  level: "INFO"
+
+wandb:
+  project: generation_for_nlp
+  entity: hidong1015-nlp04
+
+exp:
+  # 실험자 [sujin, seongmin, sungjae, gayeon, yeseo, minseo]
+  username: fubao

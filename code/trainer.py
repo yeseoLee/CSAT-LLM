@@ -13,7 +13,6 @@ class CustomTrainer:
         self.eval_dataset = eval_dataset
         self.training_config = training_config
         self.acc_metric = evaluate.load("accuracy")
-        self.response_template = "<start_of_turn>model"
         self.int_output_map = {"1": 0, "2": 1, "3": 2, "4": 3, "5": 4}
 
     def train(self):
@@ -24,7 +23,7 @@ class CustomTrainer:
     def _setup_trainer(self):
         # 데이터 콜레이터 설정
         data_collator = DataCollatorForCompletionOnlyLM(
-            response_template=self.response_template,
+            response_template=self.training_config["response_template"],
             tokenizer=self.tokenizer,
         )
 
@@ -46,15 +45,22 @@ class CustomTrainer:
             max_seq_length=self.training_config["params"]["max_seq_length"],
             per_device_train_batch_size=self.training_config["params"]["per_device_train_batch_size"],
             per_device_eval_batch_size=self.training_config["params"]["per_device_eval_batch_size"],
+            gradient_accumulation_steps=self.training_config["params"]["gradient_accumulation_steps"],
+            gradient_checkpointing=self.training_config["params"]["gradient_checkpointing"],
+            max_grad_norm=self.training_config["params"]["max_grad_norm"],
             num_train_epochs=self.training_config["params"]["num_train_epochs"],
             learning_rate=self.training_config["params"]["learning_rate"],
             weight_decay=self.training_config["params"]["weight_decay"],
-            logging_steps=self.training_config["params"]["logging_steps"],
+            logging_strategy=self.training_config["params"]["logging_strategy"],
             save_strategy=self.training_config["params"]["save_strategy"],
             eval_strategy=self.training_config["params"]["eval_strategy"],
+            logging_steps=self.training_config["params"]["logging_steps"],
+            save_steps=self.training_config["params"]["save_steps"],
+            eval_steps=self.training_config["params"]["eval_steps"],
             save_total_limit=self.training_config["params"]["save_total_limit"],
             save_only_model=self.training_config["params"]["save_only_model"],
             report_to=self.training_config["params"]["report_to"],
+            run_name=self.training_config["params"]["run_name"],
             output_dir=self.training_config["params"]["output_dir"],
             overwrite_output_dir=self.training_config["params"]["overwrite_output_dir"],
         )

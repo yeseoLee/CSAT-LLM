@@ -72,6 +72,7 @@ training:
     overwrite_output_dir: true
     metric_for_best_model: "accuracy" # early_stop 기준
     early_stop_patience: 2
+    early_stop_threshold: 0
 
 
 inference:

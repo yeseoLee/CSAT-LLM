@@ -1,4 +1,5 @@
 from ast import literal_eval
+import re
 
 import pandas as pd
 import streamlit as st
@@ -22,42 +23,48 @@ def load_data(file_path):
     return data, records
 
 
-def display_instance(record):
-    st.subheader("Paragraph")
-    st.write(record["paragraph"])
+def display_instance(left, right, record):
+    with left:
+        st.subheader("Paragraph")
+        st.write(record["paragraph"])
 
-    st.subheader("Question, Choices, Answer")
-    st.markdown("#### Question:")
-    st.write(record["question"])
+        st.subheader("Question, Choices, Answer")
+        st.markdown("#### Question:")
+        st.write(record["question"])
 
-    st.markdown("#### Choices:")
-    for i, choice in enumerate(record["choices"], 1):
-        if i == record["answer"]:
-            st.markdown(f"<span style='color:red'>{i} : {choice}</span>", unsafe_allow_html=True)
-        else:
-            st.write(f"{i} : {choice}")
+        st.markdown("#### Choices:")
+        for i, choice in enumerate(record["choices"], 1):
+            if i == record["answer"]:
+                st.markdown(f"<span style='color:red'>{i} : {choice}</span>", unsafe_allow_html=True)
+            else:
+                st.write(f"{i} : {choice}")
 
-    st.markdown("#### Answer:")
-    st.write(str(record["answer"]))
+        st.markdown("#### Answer:")
+        st.write(str(record["answer"]))
 
-    st.subheader("Question Plus")
-    st.write(str(record["question_plus"]))
-
-    st.subheader("Documents")
-    st.write(str(record["documents"]))
+        st.subheader("Question Plus")
+        st.write(str(record["question_plus"]))
+    with right:
+        st.subheader("Documents")
+        result = re.split(r"(?=\[)", str(record["documents"]))
+        for part in result:
+            st.write(part)
 
 
 def main(file_path="../data/train.csv"):
+    st.set_page_config(layout="wide")
     st.title("CSV 데이터 인스턴스 뷰어")
-
     data, records = load_data(file_path)
 
-    instance_index = st.number_input("인스턴스 선택", min_value=0, max_value=len(data) - 1, value=0, step=1)
+    left, right = st.columns([0.5, 0.5])
+    with left:
+        instance_index = st.number_input("인스턴스 선택", min_value=0, max_value=len(data) - 1, value=0, step=1)
 
-    st.write(f"선택된 인스턴스 (인덱스 {instance_index}):")
-    st.write(data.iloc[instance_index])
+    display_instance(left, right, records[instance_index])
 
-    display_instance(records[instance_index])
+    with left:
+        st.write(f"선택된 인스턴스 (인덱스 {instance_index}):")
+        st.write(data.iloc[instance_index])
 
 
 if __name__ == "__main__":

@@ -1,22 +1,22 @@
-import sys
 import os
+import sys
+
 
 # 현재 코드가 있는 디렉토리 기준으로 상위 디렉토리를 `sys.path`에 추가
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import torch
-import torch.nn as nn
-import transformers
-import logging
-import wandb
-import numpy as np
-from typing import Tuple
-from tqdm import tqdm
 from copy import deepcopy
+import logging
+from typing import Tuple
 
 from dpr_data import KorQuadDataset, KorQuadSampler, korquad_collator
 from encoder import KobertBiEncoder
+import numpy as np
+import torch
+from tqdm import tqdm
+import transformers
+
 
 os.makedirs("logs", exist_ok=True)
 logging.basicConfig(
@@ -53,39 +53,29 @@ class Trainer:
         )
         self.train_loader = torch.utils.data.DataLoader(
             dataset=train_dataset.dataset,
-            batch_sampler=KorQuadSampler(
-                train_dataset.dataset, batch_size=batch_size, drop_last=False
-            ),
-            collate_fn=lambda x: korquad_collator(
-                x, padding_value=train_dataset.pad_token_id
-            ),
+            batch_sampler=KorQuadSampler(train_dataset.dataset, batch_size=batch_size, drop_last=False),
+            collate_fn=lambda x: korquad_collator(x, padding_value=train_dataset.pad_token_id),
             num_workers=4,
         )
         self.valid_loader = torch.utils.data.DataLoader(
             dataset=valid_dataset.dataset,
-            batch_sampler=KorQuadSampler(
-                valid_dataset.dataset, batch_size=batch_size, drop_last=False
-            ),
-            collate_fn=lambda x: korquad_collator(
-                x, padding_value=valid_dataset.pad_token_id
-            ),
+            batch_sampler=KorQuadSampler(valid_dataset.dataset, batch_size=batch_size, drop_last=False),
+            collate_fn=lambda x: korquad_collator(x, padding_value=valid_dataset.pad_token_id),
             num_workers=4,
         )
 
         self.batch_size = batch_size
         self.num_epoch = num_epoch
         self.valid_every = valid_every
-        self.lr = lr 
-        self.betas = betas 
-        self.num_warmup_steps = num_warmup_steps 
+        self.lr = lr
+        self.betas = betas
+        self.num_warmup_steps = num_warmup_steps
         self.num_training_steps = num_training_steps
         self.best_val_ckpt_path = best_val_ckpt_path
         self.best_val_optim_path = best_val_ckpt_path.split(".pt")[0] + "_optim.pt"
 
         self.start_ep = 1
         self.start_step = 1
-
-        
 
     def ibn_loss(self, pred: torch.FloatTensor):
         """in-batch negative를 활용한 batch의 loss를 계산합니다.
@@ -120,10 +110,7 @@ class Trainer:
         global_step_cnt = 0
         prev_best = None
         for ep in range(self.start_ep, self.num_epoch + 1):
-            for step, batch in enumerate(
-                tqdm(self.train_loader, desc=f"epoch {ep} batch"), 1
-            ):
-
+            for step, batch in enumerate(tqdm(self.train_loader, desc=f"epoch {ep} batch"), 1):
                 if ep == self.start_ep and step < self.start_step:
                     continue  # 중간부터 학습시키는 경우 해당 지점까지 복원
 
@@ -151,20 +138,16 @@ class Trainer:
                     "step": step,
                     "global_step": global_step_cnt,
                     "train_step_loss": loss.cpu().item(),
-                    "current_lr": float(
-                        self.scheduler.get_last_lr()[0]
-                    ),  # parameter group 1개이므로
+                    "current_lr": float(self.scheduler.get_last_lr()[0]),  # parameter group 1개이므로
                     "step_acc": acc,
                 }
                 if global_step_cnt % self.valid_every == 0:
                     eval_dict = self.evaluate()
                     log.update(eval_dict)
-                    if (
-                        prev_best is None or eval_dict["valid_loss"] < prev_best
-                    ):  # best val loss인 경우 저장
+                    if prev_best is None or eval_dict["valid_loss"] < prev_best:  # best val loss인 경우 저장
                         # self.model.checkpoint(self.best_val_ckpt_path)
                         self.save_training_state(log)
-                #wandb.log(log)
+                # wandb.log(log)
 
     def evaluate(self):
         """모델을 평가합니다."""
@@ -194,7 +177,7 @@ class Trainer:
         valid_loss = np.array(loss_list).sum() / float(sample_cnt)
         valid_acc = valid_acc / float(sample_cnt)
 
-    # 콘솔에 출력
+        # 콘솔에 출력
         print(f"Validation Loss: {valid_loss:.4f}, Validation Accuracy: {valid_acc:.4f}")
         return {
             "valid_loss": np.array(loss_list).sum() / float(sample_cnt),
@@ -216,25 +199,22 @@ class Trainer:
         """모델, optimizer와 기타 정보를 로드합니다"""
         self.model.load(self.best_val_ckpt_path)
         training_state = torch.load(self.best_val_optim_path)
-        logger.debug(
-            f"loaded optimizer/scheduler state from {self.best_val_optim_path}"
-        )
+        logger.debug(f"loaded optimizer/scheduler state from {self.best_val_optim_path}")
         self.optimizer.load_state_dict(training_state["optimizer_state"])
         self.scheduler.load_state_dict(training_state["scheduler_state"])
         self.start_ep = training_state["epoch"]
         self.start_step = training_state["step"]
-        logger.debug(
-            f"resume training from epoch {self.start_ep} / step {self.start_step}"
-        )
+        logger.debug(f"resume training from epoch {self.start_ep} / step {self.start_step}")
+
+
 # 모델 존재 여부 확인 함수
 def check_if_model_exists(model_path: str):
     """모델 체크포인트가 존재하는지 확인하는 함수"""
     return os.path.exists(model_path)
 
+
 # 메인 실행
 if __name__ == "__main__":
-
-    
     # 모델 경로 설정
     model_path = "./output/my_model.pt"
 
@@ -274,4 +254,4 @@ if __name__ == "__main__":
         torch.save(model.state_dict(), model_path)
         print(f"학습 완료. 모델이 '{model_path}'에 저장되었습니다.")
     else:
-        print(f"모델 '{model_path}'이 이미 존재합니다. 학습을 건너뜁니다.") 
+        print(f"모델 '{model_path}'이 이미 존재합니다. 학습을 건너뜁니다.")

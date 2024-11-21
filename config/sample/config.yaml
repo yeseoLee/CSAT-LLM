@@ -65,10 +65,13 @@ training:
     eval_steps: 300
     save_total_limit: 4
     save_only_model: true
+    load_best_model_at_end: true # early_stop을 위해 필요
     report_to: "wandb"
     run_name: "../outputs" # wandb 세팅이 존재한다면 동적으로 생성됩니다.
     output_dir: "../outputs"
     overwrite_output_dir: true
+    metric_for_best_model: "accuracy" # early_stop 기준
+    early_stop_patience: 2
 
 
 inference:

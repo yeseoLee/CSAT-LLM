@@ -1,12 +1,32 @@
+import os
+import pickle
+import sys
+
+
+# rag 폴더 경로를 추가합니다.
+sys.path.append(os.path.join(os.path.dirname(__file__), "rag"))
+
 from ast import literal_eval
 import os
 from typing import Dict, List
 
 from datasets import Dataset
+from dotenv import load_dotenv
 from loguru import logger
 import numpy as np
+
+# from kornia.data import Dataset
 import pandas as pd
+<<<<<<< HEAD
+from rag import BM25Retriever
+from rag.dpr_data import KorQuadDataset
+from rag.encoder import KobertBiEncoder
+from rag.indexers import DenseFlatIndexer
+from rag.retriever import KorDPRRetriever, get_passage_file  # KorDPRRetriever 불러오기
+=======
 from rag import ElasticsearchRetriever, Reranker
+from utils import load_config
+>>>>>>> 20cb17ac17b7c11c957c46dd156f4b1ffbcc7b94
 
 
 class DataLoader:
@@ -40,6 +60,32 @@ class DataLoader:
             )
         elif self.retriever_config["retriever_type"] == "BM25":
             raise NotImplementedError("BM25는 더 이상 지원하지 않습니다. Elasticsearch를 사용해주세요...")
+        elif self.retriever_config["retriever_type"] == "DPR":
+            # KorDPRRetriever 사용
+            try:
+                model = KobertBiEncoder()  # 모델 초기화
+                model.load("./rag/output/my_model.pt")  # 모델 불러오기
+                print("Model loaded successfully.")
+                assert model is not None, "Model is None after loading."
+            except Exception as e:
+                print(f"Error while loading model: {e}")
+
+            try:
+                valid_dataset = KorQuadDataset("./rag/data/KorQuAD_v1.0_dev.json")  # 데이터셋 준비
+                print("Valid dataset loaded successfully.")
+            except Exception as e:
+                print(f"Error while loading valid dataset: {e}")
+
+            try:
+                index = DenseFlatIndexer()  # 인덱스 준비
+                index.deserialize(path="./rag/2050iter_flat/")
+                print("Index loaded successfully.")
+                assert index is not None, "Index is None after loading."
+            except Exception as e:
+                print(f"Error while loading index: {e}")
+
+            ds_retriever = KorDPRRetriever(model=model, valid_dataset=valid_dataset, index=index)
+            print("KorDPRRetriever initialized successfully.")
         else:
             return [""] * len(df)
 
@@ -58,6 +104,7 @@ class DataLoader:
         query_max_length = self.retriever_config["query_max_length"]
 
         queries = df.apply(_combine_text, axis=1)
+
         filtered_queries = [(i, q) for i, q in enumerate(queries) if len(q) <= query_max_length]
         if not filtered_queries:
             return [""] * len(queries)
@@ -73,6 +120,27 @@ class DataLoader:
         docs = [""] * len(queries)
         for idx, result in zip(indices, retrieve_results):
             docs[idx] = " ".join(item["text"] for item in result if item["score"] >= threshold)
+        # BM25 또는 DPR을 사용하여 검색 결과 가져오기
+        if self.retriever_config["retriever_type"] == "DPR":  # DPR인 경우
+            docs = []
+            for query in queries:
+                passages = ds_retriever.retrieve(query=query, k=top_k)  # DPR으로 검색
+
+                # passage 로딩 및 결합
+                for idx, (passage, score) in enumerate(passages):
+                    # passage ID에 해당하는 파일 경로 가져오기
+                    path = get_passage_file([idx])
+                    if path:
+                        with open(path, "rb") as f:
+                            passage_dict = pickle.load(f)
+                            docs.append((passage_dict[idx], score))  # passage와 score 저장
+                    else:
+                        print(f"No passage found for ID: {idx}")
+
+                    # 로깅 추가
+                    logger.info(f"가연 Query: {query}")
+                    logger.info(f"Rank {idx+1}: Score: {score:.4f}, Passage: {passage}")
+
 
         return docs
 
@@ -114,7 +182,19 @@ class DataLoader:
         for row in dataset:
             choices_string = "\n".join([f"{idx + 1} - {choice}" for idx, choice in enumerate(row["choices"])])
 
-            # start
+            # retriever에서 passage를 가져오기
+            document = row.get("document", None)  # 이미 document가 있을 수 있음
+            if not document:  # document가 없다면 retriever로부터 top-k passage를 검색
+                query = row["paragraph"] + " " + row["problems"]["question"]
+                docs = self._retrieve(pd.DataFrame([row]))[0]  # retrieve 결과 가져오기
+                document = docs  # top-k passages가 document로 설정됨
+
+                # 검색 결과 로깅
+                logger.info(f"ID: {row['id']}")
+                logger.info(f"Query: {query}")
+                logger.info(f"Retrieved document: {document[:500]}...")
+
+            # 메시지 시작 부분 작성
             if row["question_plus"]:
                 message_start = self.prompt_config["start_with_plus"].format(
                     paragraph=row["paragraph"],
@@ -128,14 +208,12 @@ class DataLoader:
                     question=row["question"],
                     choices=choices_string,
                 )
-            # mid
-            if row["document"]:
-                message_mid = self.prompt_config["mid_with_document"].format(
-                    document=row["document"],
-                )
-            else:
-                message_mid = self.prompt_config["start"]
-            # end
+
+            # mid 부분에 retriever에서 가져온 passage를 추가
+            message_mid = self.prompt_config["mid_with_document"].format(
+                document=document,  # 이 부분에 문서 추가
+            )
+
             message_end = self.prompt_config["end"]
 
             user_message = message_start + message_mid + message_end
@@ -209,3 +287,65 @@ class DataLoader:
         logger.info(f"avg token length: {np.mean(train_dataset_token_lengths)}")
 
         return train_dataset, eval_dataset
+
+
+if __name__ == "__main__":
+    config_folder = os.path.join(os.path.dirname(__file__), "..", "config/")
+    load_dotenv(os.path.join(config_folder, ".env"))
+    config = load_config()
+    data_config = config["data"]
+
+    def _retrieve(retriever_config, df):
+        if retriever_config["retriever_type"] == "Elasticsearch":
+            retriever = ElasticsearchRetriever(
+                index_name=retriever_config["index_name"],
+            )
+        elif retriever_config["retriever_type"] == "BM25":
+            raise NotImplementedError("BM25는 더 이상 지원하지 않습니다. Elasticsearch를 사용해주세요...")
+        else:
+            return [""] * len(df)
+
+        def _combine_text(row):
+            if retriever_config["query_type"] == "pqc":
+                return row["paragraph"] + " " + row["problems"]["question"] + " " + " ".join(row["problems"]["choices"])
+            if retriever_config["query_type"] == "pq":
+                return row["paragraph"] + " " + row["problems"]["question"]
+            if retriever_config["query_type"] == "pc":
+                return row["paragraph"] + " " + " ".join(row["problems"]["choices"])
+            else:
+                return row["paragraph"]
+
+        top_k = retriever_config["top_k"]
+        threshold = retriever_config["threshold"]
+        query_max_length = retriever_config["query_max_length"]
+
+        queries = df.apply(_combine_text, axis=1)
+        filtered_queries = [(i, q) for i, q in enumerate(queries) if len(q) <= query_max_length]
+        if not filtered_queries:
+            return [""] * len(queries)
+
+        indices, valid_queries = zip(*filtered_queries)
+        retrieve_results = retriever.bulk_retrieve(valid_queries, top_k)
+        rerank_k = retriever_config["rerank_k"]
+        if rerank_k > 0:
+            with Reranker() as reranker:
+                retrieve_results = reranker.rerank(valid_queries, retrieve_results, rerank_k)
+        # [[{"text":"안녕하세요", "score":0.5}, {"text":"반갑습니다", "score":0.3},],]
+
+        docs = [""] * len(queries)
+        for idx, result in zip(indices, retrieve_results):
+            docs[idx] = " ".join(f"[{item['score']}]: {item['text']}" for item in result if item["score"] >= threshold)
+
+        return docs
+
+    def load_and_save(retriever_config, file_path) -> List[Dict]:
+        """csv를 읽어오고 dictionary 배열 형태로 변환합니다."""
+        df = pd.read_csv(file_path)
+        df["problems"] = df["problems"].apply(literal_eval)
+        docs = _retrieve(retriever_config, df)
+        df["documents"] = docs
+        df.to_csv(file_path.replace(".csv", "_retrieve.csv"), index=False)
+        logger.debug("retrieve 결과가 csv로 저장되었습니다.")
+
+    load_and_save(data_config["retriever"], data_config["train_path"])
+    load_and_save(data_config["retriever"], data_config["test_path"])

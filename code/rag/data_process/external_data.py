@@ -13,37 +13,40 @@ def preprocess_text(text):
     text = re.sub(r"\\n", " ", text)
     text = re.sub(r"#", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
-    text = re.sub(r'[^ㄱ-ㅎ가-힣0-9!"#%&\'(),-./:;<=>?@[\]^_`{|}~\s]', '', text)
+    text = re.sub(r'[^ㄱ-ㅎ가-힣0-9!"#%&\'(),-./:;<=>?@[\]^_`{|}~\s]', "", text)
 
     # 내용이 빈 괄호 제거
-    pattern = r'\(\s*\)'
+    pattern = r"\(\s*\)"
     while re.search(pattern, text):
-        text = re.sub(pattern, '', text)
-    
+        text = re.sub(pattern, "", text)
+
     return text
+
 
 def process_json_array(json_data):
     # text 필드 전처리
-    if 'text' in json_data:
-        json_data['text'] = preprocess_text(json_data['text'])
-    
+    if "text" in json_data:
+        json_data["text"] = preprocess_text(json_data["text"])
+
     # title 필드 전처리
-    if 'title' in json_data:
-        json_data['title'] = preprocess_text(json_data['title'])
-    
+    if "title" in json_data:
+        json_data["title"] = preprocess_text(json_data["title"])
+
     return json_data
+
 
 def process_json_file(json_filename):
     with open(json_filename, "r", encoding="utf-8") as f:
         docs = json.load(f)
-    
+
     processed_docs = [process_json_array(item) for item in docs]
 
     # 디렉토리와 파일명 분리 후 파일명에만 'processed_' 추가
     directory, filename = os.path.split(json_filename)
     output_path = os.path.join(directory, "processed_" + filename)
     with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(processed_docs, f, ensure_ascii=False, indent=2)    
+        json.dump(processed_docs, f, ensure_ascii=False, indent=2)
+
 
 def _dump_wiki(data_path: str = "../data"):
     """

@@ -46,6 +46,7 @@ def main():
         # 학습용 데이터 처리
         data_processor = DataLoader(tokenizer, config["data"])
         train_dataset, eval_dataset = data_processor.prepare_datasets()
+        test_dataset = data_processor.prepare_datasets(is_train=False)
 
         # 학습
         trainer = CustomTrainer(
@@ -56,10 +57,6 @@ def main():
             eval_dataset=eval_dataset,
         )
         trained_model = trainer.train()
-
-        # 추론용 데이터 처리
-        data_processor
-        test_dataset = data_processor.prepare_datasets(is_train=False)
 
         # 추론
         inferencer = InferenceModel(

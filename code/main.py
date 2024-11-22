@@ -45,7 +45,7 @@ def main():
 
         # 학습용 데이터 처리
         data_processor = DataLoader(tokenizer, config["data"])
-        train_dataset, eval_dataset = data_processor.prepare_datasets()
+        train_dataset, eval_dataset = data_processor.prepare_datasets(is_train=True)
         test_dataset = data_processor.prepare_datasets(is_train=False)
 
         # 학습

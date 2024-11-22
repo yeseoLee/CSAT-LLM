@@ -10,6 +10,7 @@ data:
     query_type: "p" # pqc, pq, pc, p
     query_max_length: 250 # 250-500 권장
     top_k: 1
+    rerank_k: 0 # 0 이하는 reranker 동작하지 않음
     threshold: 0.0
     index_name: "wiki-index"
   prompt:

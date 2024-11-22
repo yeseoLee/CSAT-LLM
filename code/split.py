@@ -1,5 +1,6 @@
 from ast import literal_eval
 
+from loguru import logger
 import pandas as pd
 
 
@@ -16,7 +17,7 @@ def load_data(file_path):
             "answer": problems.get("answer", None),
         }
         records.append(record)
-    print(records[0])  # 첫 번째 레코드 출력 (디버깅용)
+    logger.debug(records[0])  # 첫 번째 레코드 출력 (디버깅용)
     return data, records
 
 
@@ -77,7 +78,7 @@ def main():
     output_file_path = "../data/classification_results.csv"  # 출력 파일 경로 설정
     result_df.to_csv(output_file_path, index=False, encoding="utf-8-sig")  # CSV로 저장
 
-    print(f"결과가 {output_file_path}에 저장되었습니다.")
+    logger.debug(f"결과가 {output_file_path}에 저장되었습니다.")
 
 
 if __name__ == "__main__":

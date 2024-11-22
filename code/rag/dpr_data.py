@@ -23,7 +23,7 @@ def get_wiki_filepath(data_dir):
 def wiki_worker_init(worker_id):
     worker_info = torch.utils.data.get_worker_info()
     dataset = worker_info.dataset
-    # print(dataset)
+    # logger.debug(dataset)
     # dataset =
     overall_start = dataset.start
     overall_end = dataset.end
@@ -60,13 +60,13 @@ logger = logging.getLogger()
 def korquad_collator(batch: List[Tuple], padding_value: int) -> Tuple[torch.Tensor]:
     """query, p_id, gold_passage를 batch로 반환합니다."""
     batch_q = pad_sequence([T(e[0]) for e in batch], batch_first=True, padding_value=padding_value)
-    # print(batch_q.shape)
+    # logger.debug(batch_q.shape)
     batch_q_attn_mask = (batch_q != padding_value).long()
-    # print(batch_q_attn_mask.shape)
+    # logger.debug(batch_q_attn_mask.shape)
     batch_p_id = T([e[1] for e in batch])[:, None]
-    # print(batch_p_id.shape)
+    # logger.debug(batch_p_id.shape)
     batch_p = pad_sequence([T(e[2]) for e in batch], batch_first=True, padding_value=padding_value)
-    # print(batch_p.shape)
+    # logger.debug(batch_p.shape)
     batch_p_attn_mask = (batch_p != padding_value).long()
     return (batch_q, batch_q_attn_mask, batch_p_id, batch_p, batch_p_attn_mask)
 
@@ -216,11 +216,11 @@ class KorQuadDataset:
 #         collate_fn=lambda x: korquad_collator(x, padding_value=ds.pad_token_id),
 #         num_workers=4,
 #     )
-#     # print(len(_dataset.tokenized_tuples))
+#     # logger.debug(len(_dataset.tokenized_tuples))
 #     torch.manual_seed(123412341235)
 #     cnt = 0
 #     for batch in tqdm(loader):
-#         #print(len(batch))
+#         #logger.debug(len(batch))
 #         cnt += batch[0].size(0)
 #         # break
-#     print(cnt)
+#     logger.debug(cnt)

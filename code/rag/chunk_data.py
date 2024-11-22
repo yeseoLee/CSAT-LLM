@@ -74,19 +74,19 @@ def save_orig_passage(input_path="text", passage_path="processed_passages", chun
 
 def save_title_index_map(index_path="title_passage_map.p", source_passage_path="processed_passages"):
     logging.getLogger()
-    print(f"Looking for files in {source_passage_path}")
+    logger.debug(f"Looking for files in {source_passage_path}")
     files = glob(f"{source_passage_path}/*")
-    print(f"Found {len(files)} files")
+    logger.debug(f"Found {len(files)} files")
 
     title_id_map = defaultdict(list)
     for f in tqdm(files):
-        print(f"Processing file: {f}")
+        logger.debug(f"Processing file: {f}")
         with open(f, "rb") as _f:
             id_passage_map = pickle.load(_f)
 
         # 로그 추가: id_passage_map의 형식 및 내용 확인
-        print(f"Loaded {len(id_passage_map)} passages from {f}")
-        print(f"Sample passage: {list(id_passage_map.items())[:5]}")  # 첫 5개 항목 출력
+        logger.debug(f"Loaded {len(id_passage_map)} passages from {f}")
+        logger.debug(f"Sample passage: {list(id_passage_map.items())[:5]}")  # 첫 5개 항목 출력
 
         for id, passage in id_passage_map.items():
             parts = passage.split("[SEP]")
@@ -94,16 +94,16 @@ def save_title_index_map(index_path="title_passage_map.p", source_passage_path="
                 title = parts[0].split("[CLS]")[1].strip()
                 title_id_map[title].append(id)
             else:
-                print(f"Unexpected passage format in file {f}, id {id}")
+                logger.debug(f"Unexpected passage format in file {f}, id {id}")
 
-        print(f"Processed {len(id_passage_map)} passages from {f}...")
+        logger.debug(f"Processed {len(id_passage_map)} passages from {f}...")
 
-        print(f"Total unique titles: {len(title_id_map)}")
+        logger.debug(f"Total unique titles: {len(title_id_map)}")
 
     with open(index_path, "wb") as f:
         pickle.dump(title_id_map, f)
 
-    print(f"Finished saving title_index_mapping at {index_path}!")
+    logger.debug(f"Finished saving title_index_mapping at {index_path}!")
 
 
 # if __name__ == "__main__":

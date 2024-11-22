@@ -1,5 +1,6 @@
 from cleanlab.classification import CleanLearning
 from cleanlab.filter import find_label_issues
+from loguru import logger
 import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
@@ -29,7 +30,7 @@ def create_initial_labels(input_file, output_file, num_clusters=2):
     df["target"] = kmeans.labels_
     final_columns = ["id", "paragraph", "problems", "question_plus", "target"]
     df[final_columns].to_csv(output_file, index=False)
-    print(f"초기 라벨링이 완료되었습니다. 결과가 {output_file}에 저장되었습니다.")
+    logger.info(f"초기 라벨링이 완료되었습니다. 결과가 {output_file}에 저장되었습니다.")
 
 
 def load_and_preprocess_data(file_path):
@@ -57,7 +58,7 @@ def train_and_predict(X_vectorized, y, n_splits=5):
     pred_probs = np.zeros((len(y), len(np.unique(y))))
 
     for fold, (train_index, val_index) in enumerate(skf.split(X_vectorized, y), 1):
-        print(f"Fold {fold}/{n_splits}")
+        logger.info(f"Fold {fold}/{n_splits}")
         X_train, X_val = X_vectorized[train_index], X_vectorized[val_index]
         y_train, _ = y[train_index], y[val_index]
         model.fit(X_train, y_train)
@@ -80,14 +81,14 @@ def save_and_print_results(df, output_file):
     final_columns = ["id", "paragraph", "problems", "question_plus", "target", "suggested_label", "is_label_issue"]
     df[final_columns].to_csv(output_file, index=False)
 
-    print("\nID와 제안된 레이블:")
-    print(df[["id", "suggested_label"]].to_string(index=False))
+    logger.info("\nID와 제안된 레이블:")
+    logger.info(df[["id", "suggested_label"]].to_string(index=False))
 
-    print("\n레이블 이슈 통계:")
-    print(df["is_label_issue"].value_counts(normalize=True))
+    logger.info("\n레이블 이슈 통계:")
+    logger.info(df["is_label_issue"].value_counts(normalize=True))
 
-    print("\n원래 레이블과 제안된 레이블 비교:")
-    print(pd.crosstab(df["target"], df["suggested_label"]))
+    logger.info("\n원래 레이블과 제안된 레이블 비교:")
+    logger.info(pd.crosstab(df["target"], df["suggested_label"]))
 
 
 def main():

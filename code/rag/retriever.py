@@ -11,6 +11,7 @@ from typing import List
 from dpr_data import KorQuadDataset, KorQuadSampler, korquad_collator
 from encoder import KobertBiEncoder
 from indexers import DenseFlatIndexer
+from loguru import logger
 import torch
 from torch import tensor as T
 from tqdm import tqdm
@@ -23,7 +24,7 @@ def get_wiki_filepath(data_dir):
 def wiki_worker_init(worker_id):
     worker_info = torch.utils.data.get_worker_info()
     dataset = worker_info.dataset
-    # print(dataset)
+    # logger.debug(dataset)
     # dataset =
     overall_start = dataset.start
     overall_end = dataset.end
@@ -55,7 +56,7 @@ def get_passage_file(p_id_list: typing.List[int]) -> str:
             break
 
     if target_file is None:
-        print(f"No file found for passage IDs: {p_id_list}")
+        logger.debug(f"No file found for passage IDs: {p_id_list}")
 
     return target_file
 
@@ -141,20 +142,20 @@ class KorDPRRetriever:
             out = self.model(input_ids, attention_mask, "query")
 
         result = self.index.search_knn(query_vectors=out.cpu().numpy(), top_docs=k)
-        # print(result)
+        # logger.debug(result)
         # 원문 가져오기
         passages = []
         for idx, sim in zip(*result[0]):
-            # print(idx)
+            # logger.debug(idx)
             path = get_passage_file([idx])
             if not path:
-                print(f"올바른 경로에 피클화된 위키피디아가 있는지 확인하세요.No single passage path for {idx}")
+                logger.debug(f"올바른 경로에 피클화된 위키피디아가 있는지 확인하세요.No single passage path for {idx}")
                 continue
             with open(path, "rb") as f:
                 passage_dict = pickle.load(f)
-            # print(f"passage : {passage_dict[idx]}, sim : {sim}")
+            # logger.debug(f"passage : {passage_dict[idx]}, sim : {sim}")
             passages.append((passage_dict[idx], sim))
-            # print("성공!!!!!!")
+            # logger.debug("성공!!!!!!")
         return passages
 
 
@@ -183,4 +184,4 @@ if __name__ == "__main__":
 
     # 출력: 유사도 높은 passage와 그 유사도를 출력합니다.
     for idx, (passage, sim) in enumerate(passages):
-        print(f"Rank {idx + 1} | Similarity: {sim:.4f} | Passage: {passage}")
+        logger.debug(f"Rank {idx + 1} | Similarity: {sim:.4f} | Passage: {passage}")

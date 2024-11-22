@@ -50,27 +50,27 @@ class DataLoader:
             try:
                 model = KobertBiEncoder()  # 모델 초기화
                 model.load("./rag/output/my_model.pt")  # 모델 불러오기
-                print("Model loaded successfully.")
+                logger.debug("Model loaded successfully.")
                 assert model is not None, "Model is None after loading."
             except Exception as e:
-                print(f"Error while loading model: {e}")
+                logger.debug(f"Error while loading model: {e}")
 
             try:
                 valid_dataset = KorQuadDataset("./rag/data/KorQuAD_v1.0_dev.json")  # 데이터셋 준비
-                print("Valid dataset loaded successfully.")
+                logger.debug("Valid dataset loaded successfully.")
             except Exception as e:
-                print(f"Error while loading valid dataset: {e}")
+                logger.debug(f"Error while loading valid dataset: {e}")
 
             try:
                 index = DenseFlatIndexer()  # 인덱스 준비
                 index.deserialize(path="./rag/2050iter_flat/")
-                print("Index loaded successfully.")
+                logger.debug("Index loaded successfully.")
                 assert index is not None, "Index is None after loading."
             except Exception as e:
-                print(f"Error while loading index: {e}")
+                logger.debug(f"Error while loading index: {e}")
 
             ds_retriever = KorDPRRetriever(model=model, valid_dataset=valid_dataset, index=index)
-            print("KorDPRRetriever initialized successfully.")
+            logger.debug("KorDPRRetriever initialized successfully.")
         else:
             return [""] * len(df)
 
@@ -119,7 +119,7 @@ class DataLoader:
                             passage_dict = pickle.load(f)
                             docs.append((passage_dict[idx], score))  # passage와 score 저장
                     else:
-                        print(f"No passage found for ID: {idx}")
+                        logger.debug(f"No passage found for ID: {idx}")
 
                     # 로깅 추가
                     logger.info(f"가연 Query: {query}")
@@ -281,27 +281,27 @@ if __name__ == "__main__":
             try:
                 model = KobertBiEncoder()  # 모델 초기화
                 model.load("./rag/output/my_model.pt")  # 모델 불러오기
-                print("Model loaded successfully.")
+                logger.debug("Model loaded successfully.")
                 assert model is not None, "Model is None after loading."
             except Exception as e:
-                print(f"Error while loading model: {e}")
+                logger.debug(f"Error while loading model: {e}")
 
             try:
                 valid_dataset = KorQuadDataset("./rag/data/KorQuAD_v1.0_dev.json")  # 데이터셋 준비
-                print("Valid dataset loaded successfully.")
+                logger.debug("Valid dataset loaded successfully.")
             except Exception as e:
-                print(f"Error while loading valid dataset: {e}")
+                logger.debug(f"Error while loading valid dataset: {e}")
 
             try:
                 index = DenseFlatIndexer()  # 인덱스 준비
                 index.deserialize(path="./rag/2050iter_flat/")
-                print("Index loaded successfully.")
+                logger.debug("Index loaded successfully.")
                 assert index is not None, "Index is None after loading."
             except Exception as e:
-                print(f"Error while loading index: {e}")
+                logger.debug(f"Error while loading index: {e}")
 
             ds_retriever = KorDPRRetriever(model=model, valid_dataset=valid_dataset, index=index)
-            print("KorDPRRetriever initialized successfully.")
+            logger.debug("KorDPRRetriever initialized successfully.")
 
         else:
             return [""] * len(df)
@@ -354,7 +354,7 @@ if __name__ == "__main__":
                             passage_dict = pickle.load(f)
                             docs.append((passage_dict[idx], score))  # passage와 score 저장
                     else:
-                        print(f"No passage found for ID: {idx}")
+                        logger.debug(f"No passage found for ID: {idx}")
 
                     # 로깅 추가
                     logger.info(f"Query: {query}")

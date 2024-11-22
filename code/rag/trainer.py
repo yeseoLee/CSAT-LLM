@@ -178,7 +178,7 @@ class Trainer:
         valid_acc = valid_acc / float(sample_cnt)
 
         # 콘솔에 출력
-        print(f"Validation Loss: {valid_loss:.4f}, Validation Accuracy: {valid_acc:.4f}")
+        logger.info(f"Validation Loss: {valid_loss:.4f}, Validation Accuracy: {valid_acc:.4f}")
         return {
             "valid_loss": np.array(loss_list).sum() / float(sample_cnt),
             "valid_acc": valid_acc / float(sample_cnt),
@@ -247,11 +247,11 @@ if __name__ == "__main__":
         # 학습 수행
         my_trainer.fit()
         eval_dict = my_trainer.evaluate()
-        print(eval_dict)
+        logger.info(eval_dict)
 
         # 모델 저장 디렉토리 생성 및 저장
         os.makedirs("output", exist_ok=True)
         torch.save(model.state_dict(), model_path)
-        print(f"학습 완료. 모델이 '{model_path}'에 저장되었습니다.")
+        logger.info(f"학습 완료. 모델이 '{model_path}'에 저장되었습니다.")
     else:
-        print(f"모델 '{model_path}'이 이미 존재합니다. 학습을 건너뜁니다.")
+        logger.info(f"모델 '{model_path}'이 이미 존재합니다. 학습을 건너뜁니다.")

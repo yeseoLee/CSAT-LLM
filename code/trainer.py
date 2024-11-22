@@ -2,6 +2,7 @@ import evaluate
 import numpy as np
 from peft import LoraConfig
 import torch
+from transformers import EarlyStoppingCallback
 from trl import DataCollatorForCompletionOnlyLM, SFTConfig, SFTTrainer
 
 
@@ -59,10 +60,12 @@ class CustomTrainer:
             eval_steps=self.training_config["params"]["eval_steps"],
             save_total_limit=self.training_config["params"]["save_total_limit"],
             save_only_model=self.training_config["params"]["save_only_model"],
+            load_best_model_at_end=self.training_config["params"]["load_best_model_at_end"],
             report_to=self.training_config["params"]["report_to"],
             run_name=self.training_config["params"]["run_name"],
             output_dir=self.training_config["params"]["output_dir"],
             overwrite_output_dir=self.training_config["params"]["overwrite_output_dir"],
+            metric_for_best_model=self.training_config["params"]["metric_for_best_model"],
         )
 
         return SFTTrainer(
@@ -75,6 +78,12 @@ class CustomTrainer:
             args=sft_config,
             compute_metrics=self._compute_metrics,
             preprocess_logits_for_metrics=self._preprocess_logits_for_metrics,
+            callbacks=[
+                EarlyStoppingCallback(
+                    early_stopping_patience=self.training_config["params"]["early_stop_patience"],
+                    early_stopping_threshold=self.training_config["params"]["early_stop_threshold"],
+                )
+            ],
         )
 
     # 모델의 logits를 조정하여 정답 토큰 부분만 출력하도록 설정

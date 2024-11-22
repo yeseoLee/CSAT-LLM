@@ -68,4 +68,4 @@ def main(file_path="../data/train.csv"):
 
 
 if __name__ == "__main__":
-    main("../data/train_retrieve.csv")
+    main("../data/test_retrieve.csv")

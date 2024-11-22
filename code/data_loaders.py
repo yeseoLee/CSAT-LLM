@@ -31,13 +31,29 @@ class DataLoader:
     def prepare_datasets(self, is_train=True):
         """학습 또는 테스트용 데이터셋 준비"""
         if is_train:
-            dataset = self._load_data(self.train_path)
-            processed_dataset = self._process_dataset(dataset)
+            # prompt 전처리된 데이터셋 파일이 존재한다면 이를 로드합니다.
+            processed_df_path = self.processed_train_path if is_train else self.processed_test_path
+            if os.path.isfile(processed_df_path):
+                logger.info(f"전처리된 데이터셋을 불러옵니다: {processed_df_path}")
+                processed_df = pd.read_csv(processed_df_path, encoding="utf-8")
+                processed_df["messages"] = processed_df["messages"].apply(literal_eval)
+                processed_dataset = Dataset.from_pandas(processed_df)
+            else:
+                dataset = self._load_data(self.train_path)
+                processed_dataset = self._process_dataset(dataset)
             tokenized_dataset = self._tokenize_dataset(processed_dataset)
             return self._split_dataset(tokenized_dataset)
         else:
-            dataset = self._load_data(self.test_path)
-            processed_dataset = self._process_dataset(dataset, is_train=False)
+            # prompt 전처리된 데이터셋 파일이 존재한다면 이를 로드합니다.
+            processed_df_path = self.processed_train_path if is_train else self.processed_test_path
+            if os.path.isfile(processed_df_path):
+                logger.info(f"전처리된 데이터셋을 불러옵니다: {processed_df_path}")
+                processed_df = pd.read_csv(processed_df_path, encoding="utf-8")
+                processed_df["messages"] = processed_df["messages"].apply(literal_eval)
+                processed_dataset = Dataset.from_pandas(processed_df)
+            else:
+                dataset = self._load_data(self.test_path)
+                processed_dataset = self._process_dataset(dataset, is_train=False)
             return processed_dataset
 
     def _retrieve(self, df):  # noqa: C901
@@ -151,14 +167,6 @@ class DataLoader:
     def _process_dataset(self, dataset: List[Dict], is_train=True):
         """데이터에 프롬프트 적용"""
 
-        # prompt 전처리된 데이터셋 파일이 존재한다면 이를 로드합니다.
-        processed_df_path = self.processed_train_path if is_train else self.processed_test_path
-        if os.path.isfile(processed_df_path):
-            logger.info(f"전처리된 데이터셋을 불러옵니다: {processed_df_path}")
-            processed_df = pd.read_csv(processed_df_path, encoding="utf-8")
-            processed_df["messages"] = processed_df["messages"].apply(literal_eval)
-            return Dataset.from_pandas(processed_df)
-
         # 데이터셋을 prompt 전처리하고 저장합니다.
         logger.info("데이터셋 전처리를 수행합니다.")
         processed_data = []
@@ -202,6 +210,7 @@ class DataLoader:
 
         processed_df = pd.DataFrame(processed_data)
         logger.info("데이터셋 전처리가 완료되었습니다.")
+        processed_df_path = self.processed_train_path if is_train else self.processed_test_path
         if processed_df_path:
             processed_df.to_csv(processed_df_path, index=False, encoding="utf-8")
             logger.info("전처리된 데이터셋이 저장되었습니다.")

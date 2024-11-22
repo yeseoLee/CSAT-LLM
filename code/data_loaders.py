@@ -112,6 +112,7 @@ class DataLoader:
             docs = [""] * len(queries)
             for idx, result in zip(indices, retrieve_results):
                 docs[idx] = " ".join(item["text"] for item in result if item["score"] >= threshold)
+                docs[idx] = docs[idx][: self.retriever_config["result_max_length"]]
         elif self.retriever_config["retriever_type"] == "DPR":  # DPR인 경우
             docs = []
             for query in queries:

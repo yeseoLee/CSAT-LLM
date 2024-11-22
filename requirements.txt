@@ -4,7 +4,6 @@
 
 # Deep Learning
 auto_gptq==0.7.1
-autoawq==0.2.7.post2
 bitsandbytes==0.44.1
 evaluate==0.4.3
 huggingface-hub==0.26.2

@@ -65,7 +65,7 @@ class CustomTrainer:
             run_name=self.training_config["params"]["run_name"],
             output_dir=self.training_config["params"]["output_dir"],
             overwrite_output_dir=self.training_config["params"]["overwrite_output_dir"],
-            metric_for_best_model=self.training_config["params"]["metric_for_best_model"]
+            metric_for_best_model=self.training_config["params"]["metric_for_best_model"],
         )
 
         return SFTTrainer(
@@ -81,8 +81,9 @@ class CustomTrainer:
             callbacks=[
                 EarlyStoppingCallback(
                     early_stopping_patience=self.training_config["params"]["early_stop_patience"],
-                    early_stopping_threshold=self.training_config["params"]["early_stop_threshold"]
-                    )]
+                    early_stopping_threshold=self.training_config["params"]["early_stop_threshold"],
+                )
+            ],
         )
 
     # 모델의 logits를 조정하여 정답 토큰 부분만 출력하도록 설정

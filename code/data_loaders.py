@@ -30,30 +30,21 @@ class DataLoader:
 
     def prepare_datasets(self, is_train=True):
         """학습 또는 테스트용 데이터셋 준비"""
-        if is_train:
-            # prompt 전처리된 데이터셋 파일이 존재한다면 이를 로드합니다.
-            processed_df_path = self.processed_train_path if is_train else self.processed_test_path
-            if os.path.isfile(processed_df_path):
-                logger.info(f"전처리된 데이터셋을 불러옵니다: {processed_df_path}")
-                processed_df = pd.read_csv(processed_df_path, encoding="utf-8")
-                processed_df["messages"] = processed_df["messages"].apply(literal_eval)
-                processed_dataset = Dataset.from_pandas(processed_df)
-            else:
-                dataset = self._load_data(self.train_path)
-                processed_dataset = self._process_dataset(dataset)
-            tokenized_dataset = self._tokenize_dataset(processed_dataset)
-            return self._split_dataset(tokenized_dataset)
+        # prompt 전처리된 데이터셋 파일이 존재한다면 이를 로드합니다.
+        processed_df_path = self.processed_train_path if is_train else self.processed_test_path
+        if os.path.isfile(processed_df_path):
+            logger.info(f"전처리된 데이터셋을 불러옵니다: {processed_df_path}")
+            processed_df = pd.read_csv(processed_df_path, encoding="utf-8")
+            processed_df["messages"] = processed_df["messages"].apply(literal_eval)
+            processed_dataset = Dataset.from_pandas(processed_df)
         else:
-            # prompt 전처리된 데이터셋 파일이 존재한다면 이를 로드합니다.
-            processed_df_path = self.processed_train_path if is_train else self.processed_test_path
-            if os.path.isfile(processed_df_path):
-                logger.info(f"전처리된 데이터셋을 불러옵니다: {processed_df_path}")
-                processed_df = pd.read_csv(processed_df_path, encoding="utf-8")
-                processed_df["messages"] = processed_df["messages"].apply(literal_eval)
-                processed_dataset = Dataset.from_pandas(processed_df)
-            else:
-                dataset = self._load_data(self.test_path)
-                processed_dataset = self._process_dataset(dataset, is_train=False)
+            dataset = self._load_data(self.train_path)
+            processed_dataset = self._process_dataset(dataset, is_train)
+        if is_train:
+            tokenized_dataset = self._tokenize_dataset(processed_dataset)
+            splitted_dataset = self._split_dataset(tokenized_dataset)
+            return splitted_dataset
+        else:
             return processed_dataset
 
     def _retrieve(self, df):  # noqa: C901

@@ -25,8 +25,8 @@ class DenseIndexer(object):
         - index: FAISS 인덱스 객체.
         """
         self.buffer_size = buffer_size
-        self.index_id_to_db_id = [] # 인덱스 ID를 실제 데이터베이스 ID와 매핑하는 리스트.
-        self.index = None # FAISS 인덱스 객체.
+        self.index_id_to_db_id = []  # 인덱스 ID를 실제 데이터베이스 ID와 매핑하는 리스트.
+        self.index = None  # FAISS 인덱스 객체.
 
     def init_index(self, vector_sz: int):
         raise NotImplementedError
@@ -52,11 +52,11 @@ class DenseIndexer(object):
 
         faiss.write_index(self.index, index_file)  # FAISS 인덱스를 파일에 저장.
         with open(meta_file, mode="wb") as f:
-            pickle.dump(self.index_id_to_db_id, f) # ID 매핑 정보를 저장.
+            pickle.dump(self.index_id_to_db_id, f)  # ID 매핑 정보를 저장.
 
     def get_files(self, path: str):
         if os.path.isdir(path):
-            index_file = os.path.join(path, "index.dpr") # FAISS 인덱스를 파일에서 로드.
+            index_file = os.path.join(path, "index.dpr")  # FAISS 인덱스를 파일에서 로드.
             meta_file = os.path.join(path, "index_meta.dpr")
         else:
             index_file = path + ".{}.dpr".format(self.get_index_name())
@@ -90,7 +90,7 @@ class DenseFlatIndexer(DenseIndexer):
         super(DenseFlatIndexer, self).__init__(buffer_size=buffer_size)
 
     def init_index(self, vector_sz: int):
-        self.index = faiss.IndexFlatIP(vector_sz) # Inner Product를 사용하는 기본 인덱스 초기화.
+        self.index = faiss.IndexFlatIP(vector_sz)  # Inner Product를 사용하는 기본 인덱스 초기화.
 
     def index_data(self, data: List[Tuple[object, np.array]]):
         n = len(data)
@@ -107,7 +107,7 @@ class DenseFlatIndexer(DenseIndexer):
         logger.info("Total data indexed %d", indexed_cnt)
 
     def search_knn(self, query_vectors: np.array, top_docs: int) -> List[Tuple[List[object], List[float]]]:
-        scores, indexes = self.index.search(query_vectors, top_docs) # 쿼리 벡터와 가장 유사한 벡터 검색.
+        scores, indexes = self.index.search(query_vectors, top_docs)  # 쿼리 벡터와 가장 유사한 벡터 검색.
         # convert to external ids
         db_ids = [[self.index_id_to_db_id[i] for i in query_top_idxs] for query_top_idxs in indexes]
         result = [(db_ids[i], scores[i]) for i in range(len(db_ids))]

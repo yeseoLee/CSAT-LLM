@@ -1,11 +1,3 @@
-import torch
-from torch import tensor as T
-from torch.nn.utils.rnn import pad_sequence
-import transformers
-
-
-transformers.logging.set_verbosity_error()  # 토크나이저 초기화 관련 warning suppress
-# from utils import get_wiki_filepath, wiki_worker_init
 from glob import glob
 import logging
 import math
@@ -16,7 +8,15 @@ from typing import List, Tuple
 from chunk_data import DataChunk
 from encoder import KobertBiEncoder
 import indexers
+import torch
+from torch import tensor as T
+from torch.nn.utils.rnn import pad_sequence
 from tqdm import tqdm
+import transformers
+
+
+# from utils import get_wiki_filepath, wiki_worker_init
+transformers.logging.set_verbosity_error()  # 토크나이저 초기화 관련 warning suppress
 
 
 def get_wiki_filepath(data_dir):
@@ -98,7 +98,8 @@ class WikiArticleStream(torch.utils.data.IterableDataset):
 
 
 class IndexRunner:
-    """코퍼스에 대한 인덱싱을 수행하는 메인클래스입니다. passage encoder와 data loader, FAISS indexer로 구성되어 있습니다."""
+    """코퍼스에 대한 인덱싱을 수행하는 메인클래스입니다.
+    passage encoder와 data loader, FAISS indexer로 구성되어 있습니다."""
 
     def __init__(
         self,
@@ -113,8 +114,10 @@ class IndexRunner:
     ):
         """
         data_dir : 인덱싱할 한국어 wiki 데이터가 들어있는 디렉토리입니다. 하위에 AA, AB와 같은 디렉토리가 있습니다.
-        indexer_type : 사용할 FAISS indexer 종류로 DPR 리포에 있는 대로 Flat, HNSWFlat, HNSWSQ 세 종류 중에 사용할 수 있습니다.
-        chunk_size : indexing과 searching의 단위가 되는 passage의 길이입니다. DPR 논문에서는 100개 token 길이 + title로 하나의 passage를 정의하였습니다.
+        indexer_type : 사용할 FAISS indexer 종류로
+        DPR 리포에 있는 대로 Flat, HNSWFlat, HNSWSQ 세 종류 중에 사용할 수 있습니다.
+        chunk_size : indexing과 searching의 단위가 되는 passage의 길이입니다.
+        DPR 논문에서는 100개 token 길이 + title로 하나의 passage를 정의하였습니다.
         """
         if "=" in data_dir:
             self.data_dir, self.to_this_page = data_dir.split("=")

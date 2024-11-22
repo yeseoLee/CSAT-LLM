@@ -162,7 +162,8 @@ class KorQuadDataset:
         return ret, refined_title
 
     def _match_passage(self):
-        """미리 구축한 ko-wiki 데이터와 korQuad의 answer를 매칭하여 (query, passage_id, passage)의 tuple을 구성합니다."""
+        """미리 구축한 ko-wiki 데이터와 korQuad의 answer를 매칭하여
+        (query, passage_id, passage)의 tuple을 구성합니다."""
         for item in tqdm(self.raw_json, desc="matching silver passages"):
             title = item["title"].replace("_", " ")  # _를 공백문자로 변경
             para = item["paragraphs"]

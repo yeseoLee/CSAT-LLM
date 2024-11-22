@@ -12,7 +12,7 @@ from rag import ElasticsearchRetriever, Reranker
 from rag.dpr_data import KorQuadDataset
 from rag.encoder import KobertBiEncoder
 from rag.indexers import DenseFlatIndexer
-from rag.retriever import KobertBiEncoder, KorDPRRetriever, get_passage_file
+from rag.retriever import KorDPRRetriever, get_passage_file
 from utils import load_config
 
 
@@ -40,13 +40,11 @@ class DataLoader:
             processed_dataset = self._process_dataset(dataset, is_train=False)
             return processed_dataset
 
-    def _retrieve(self, df):
+    def _retrieve(self, df):  # noqa: C901
         if self.retriever_config["retriever_type"] == "Elasticsearch":
             retriever = ElasticsearchRetriever(
                 index_name=self.retriever_config["index_name"],
             )
-        elif self.retriever_config["retriever_type"] == "BM25":
-            raise NotImplementedError("BM25는 더 이상 지원하지 않습니다. Elasticsearch를 사용해주세요...")
         elif self.retriever_config["retriever_type"] == "DPR":
             # KorDPRRetriever 사용
             try:
@@ -270,7 +268,7 @@ if __name__ == "__main__":
     config = load_config()
     data_config = config["data"]
 
-    def _retrieve(retriever_config, df):
+    def _retrieve(retriever_config, df):  # noqa: C901
         if retriever_config["retriever_type"] == "Elasticsearch":
             retriever = ElasticsearchRetriever(
                 index_name=retriever_config["index_name"],

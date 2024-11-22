@@ -18,7 +18,8 @@ logger = logging.getLogger()
 
 
 class DataChunk:
-    """인풋 text를 tokenizing한 뒤에 주어진 길이로 chunking 해서 반환합니다. 이때 하나의 chunk(context, index 단위)는 하나의 article에만 속해있어야 합니다."""
+    """인풋 text를 tokenizing한 뒤에 주어진 길이로 chunking 해서 반환합니다.
+    이때 하나의 chunk(context, index 단위)는 하나의 article에만 속해있어야 합니다."""
 
     def __init__(self, chunk_size=100):
         self.chunk_size = chunk_size

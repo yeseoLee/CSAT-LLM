@@ -6,8 +6,8 @@ import torch
 from transformers import BertModel
 
 
-#두 개의 BertModel을 사용하여 passage와 query를 encoding을 실행
-#토크나이징 후에 토큰을 고정된 크기의 벡터로 변경
+# 두 개의 BertModel을 사용하여 passage와 query를 encoding을 실행
+# 토크나이징 후에 토큰을 고정된 크기의 벡터로 변경
 
 # 로그 디렉토리 생성 (없으면 새로 생성)
 os.makedirs("logs", exist_ok=True)
@@ -19,6 +19,7 @@ logging.basicConfig(
     format="[%(asctime)s | %(funcName)s @ %(pathname)s] %(message)s",
 )
 logger = logging.getLogger()
+
 
 # KobertBiEncoder 클래스 정의
 class KobertBiEncoder(torch.nn.Module):

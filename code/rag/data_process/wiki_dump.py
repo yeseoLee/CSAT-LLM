@@ -88,6 +88,6 @@ def parse_wiki_dump(file_path: str = "../data/wiki_dump.txt"):
 
 
 if __name__ == "__main__":
-    os.chdir("..")
+    os.chdir("../../")
     dump_wiki()
     parse_wiki_dump()

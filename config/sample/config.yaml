@@ -1,18 +1,18 @@
 data:
   train_path: "../data/train.csv"
   test_path: "../data/test.csv"
-  processed_train_path: "../data/train_processed.csv" # 비워두면 동작하지 않음
-  processed_test_path: "../data/test_processed.csv" # 비워두면 동작하지 않음
+  processed_train_path: "../data/train_500_60to1_es.csv" # 비워두면 동작하지 않음
+  processed_test_path: "../data/test_500_60to1_es.csv" # 비워두면 동작하지 않음
   max_seq_length: 2048
   test_size: 0.1
   retriever:
-    retriever_type: "" # Elasticsearch
+    retriever_type: "Elasticsearch" # Elasticsearch
     query_type: "p" # pqc, pq, pc, p
-    query_max_length: 250 # 250-500 권장
-    top_k: 1
-    rerank_k: 0 # 0 이하는 reranker 동작하지 않음
-    threshold: 0.0
-    index_name: "wiki-index"
+    query_max_length: 500 # 250-500 권장
+    top_k: 60 # 60~80
+    rerank_k: 1 # 0 이하는 reranker 동작하지 않음
+    threshold: 0.2 # 0.2 ~ 0.5
+    index_name: "two-wiki-index" # wiki-index, two-wiki-index, aihub-news-index
   prompt:
     start: "지문:\n {paragraph}\n\n질문:\n {question}\n\n선택지:\n {choices}\n\n"
     start_with_plus: "지문:\n {paragraph}\n\n질문:\n {question}\n\n<보기>:\n {question_plus}\n\n선택지:\n {choices}\n\n"

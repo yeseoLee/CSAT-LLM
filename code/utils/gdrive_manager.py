@@ -118,7 +118,7 @@ class GoogleDriveManager:
 
             return results.get("files", [])
         except Exception as e:
-            print(f"Error listing files: {str(e)}")
+            logger.info(f"Error listing files: {str(e)}")
             return []
 
     def upload_yaml_file(self, file_path, filename, folder_id=None):

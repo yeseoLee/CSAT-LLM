@@ -1,5 +1,6 @@
 from ast import literal_eval
 import os
+import pickle
 from typing import Dict, List
 
 from datasets import Dataset
@@ -8,6 +9,10 @@ from loguru import logger
 import numpy as np
 import pandas as pd
 from rag import ElasticsearchRetriever, Reranker
+from rag.dpr_data import KorQuadDataset
+from rag.encoder import KobertBiEncoder
+from rag.indexers import DenseFlatIndexer
+from rag.retriever import KorDPRRetriever, get_passage_file
 from utils import load_config
 
 
@@ -35,13 +40,37 @@ class DataLoader:
             processed_dataset = self._process_dataset(dataset, is_train=False)
             return processed_dataset
 
-    def _retrieve(self, df):
+    def _retrieve(self, df):  # noqa: C901
         if self.retriever_config["retriever_type"] == "Elasticsearch":
             retriever = ElasticsearchRetriever(
                 index_name=self.retriever_config["index_name"],
             )
-        elif self.retriever_config["retriever_type"] == "BM25":
-            raise NotImplementedError("BM25는 더 이상 지원하지 않습니다. Elasticsearch를 사용해주세요...")
+        elif self.retriever_config["retriever_type"] == "DPR":
+            # KorDPRRetriever 사용
+            try:
+                model = KobertBiEncoder()  # 모델 초기화
+                model.load("./rag/output/my_model.pt")  # 모델 불러오기
+                logger.debug("Model loaded successfully.")
+                assert model is not None, "Model is None after loading."
+            except Exception as e:
+                logger.debug(f"Error while loading model: {e}")
+
+            try:
+                valid_dataset = KorQuadDataset("./rag/data/KorQuAD_v1.0_dev.json")  # 데이터셋 준비
+                logger.debug("Valid dataset loaded successfully.")
+            except Exception as e:
+                logger.debug(f"Error while loading valid dataset: {e}")
+
+            try:
+                index = DenseFlatIndexer()  # 인덱스 준비
+                index.deserialize(path="./rag/2050iter_flat/")
+                logger.debug("Index loaded successfully.")
+                assert index is not None, "Index is None after loading."
+            except Exception as e:
+                logger.debug(f"Error while loading index: {e}")
+
+            ds_retriever = KorDPRRetriever(model=model, valid_dataset=valid_dataset, index=index)
+            logger.debug("KorDPRRetriever initialized successfully.")
         else:
             return [""] * len(df)
 
@@ -60,21 +89,41 @@ class DataLoader:
         query_max_length = self.retriever_config["query_max_length"]
 
         queries = df.apply(_combine_text, axis=1)
-        filtered_queries = [(i, q) for i, q in enumerate(queries) if len(q) <= query_max_length]
-        if not filtered_queries:
-            return [""] * len(queries)
+        if self.retriever_config["retriever_type"] == "Elasticsearch":
+            filtered_queries = [(i, q) for i, q in enumerate(queries) if len(q) <= query_max_length]
+            if not filtered_queries:
+                return [""] * len(queries)
 
-        indices, valid_queries = zip(*filtered_queries)
-        retrieve_results = retriever.bulk_retrieve(valid_queries, top_k)
-        rerank_k = self.retriever_config["rerank_k"]
-        if rerank_k > 0:
-            with Reranker() as reranker:
-                retrieve_results = reranker.rerank(valid_queries, retrieve_results, rerank_k)
-        # [[{"text":"안녕하세요", "score":0.5}, {"text":"반갑습니다", "score":0.3},],]
+            indices, valid_queries = zip(*filtered_queries)
+            retrieve_results = retriever.bulk_retrieve(valid_queries, top_k)
+            rerank_k = self.retriever_config["rerank_k"]
+            if rerank_k > 0:
+                with Reranker() as reranker:
+                    retrieve_results = reranker.rerank(valid_queries, retrieve_results, rerank_k)
+            # [[{"text":"안녕하세요", "score":0.5}, {"text":"반갑습니다", "score":0.3},],]
 
-        docs = [""] * len(queries)
-        for idx, result in zip(indices, retrieve_results):
-            docs[idx] = " ".join(item["text"] for item in result if item["score"] >= threshold)
+            docs = [""] * len(queries)
+            for idx, result in zip(indices, retrieve_results):
+                docs[idx] = " ".join(item["text"] for item in result if item["score"] >= threshold)
+        elif self.retriever_config["retriever_type"] == "DPR":  # DPR인 경우
+            docs = []
+            for query in queries:
+                passages = ds_retriever.retrieve(query=query, k=top_k)  # DPR으로 검색
+
+                # passage 로딩 및 결합
+                for idx, (passage, score) in enumerate(passages):
+                    # passage ID에 해당하는 파일 경로 가져오기
+                    path = get_passage_file([idx])
+                    if path:
+                        with open(path, "rb") as f:
+                            passage_dict = pickle.load(f)
+                            docs.append((passage_dict[idx], score))  # passage와 score 저장
+                    else:
+                        logger.debug(f"No passage found for ID: {idx}")
+
+                    # 로깅 추가
+                    logger.info(f"가연 Query: {query}")
+                    logger.info(f"Rank {idx+1}: Score: {score:.4f}, Passage: {passage}")
 
         return docs
 
@@ -219,13 +268,41 @@ if __name__ == "__main__":
     config = load_config()
     data_config = config["data"]
 
-    def _retrieve(retriever_config, df):
+    def _retrieve(retriever_config, df):  # noqa: C901
         if retriever_config["retriever_type"] == "Elasticsearch":
             retriever = ElasticsearchRetriever(
                 index_name=retriever_config["index_name"],
             )
         elif retriever_config["retriever_type"] == "BM25":
             raise NotImplementedError("BM25는 더 이상 지원하지 않습니다. Elasticsearch를 사용해주세요...")
+
+        elif retriever_config["retriever_type"] == "DPR":
+            # KorDPRRetriever 사용
+            try:
+                model = KobertBiEncoder()  # 모델 초기화
+                model.load("./rag/output/my_model.pt")  # 모델 불러오기
+                logger.debug("Model loaded successfully.")
+                assert model is not None, "Model is None after loading."
+            except Exception as e:
+                logger.debug(f"Error while loading model: {e}")
+
+            try:
+                valid_dataset = KorQuadDataset("./rag/data/KorQuAD_v1.0_dev.json")  # 데이터셋 준비
+                logger.debug("Valid dataset loaded successfully.")
+            except Exception as e:
+                logger.debug(f"Error while loading valid dataset: {e}")
+
+            try:
+                index = DenseFlatIndexer()  # 인덱스 준비
+                index.deserialize(path="./rag/2050iter_flat/")
+                logger.debug("Index loaded successfully.")
+                assert index is not None, "Index is None after loading."
+            except Exception as e:
+                logger.debug(f"Error while loading index: {e}")
+
+            ds_retriever = KorDPRRetriever(model=model, valid_dataset=valid_dataset, index=index)
+            logger.debug("KorDPRRetriever initialized successfully.")
+
         else:
             return [""] * len(df)
 
@@ -244,22 +321,44 @@ if __name__ == "__main__":
         query_max_length = retriever_config["query_max_length"]
 
         queries = df.apply(_combine_text, axis=1)
-        filtered_queries = [(i, q) for i, q in enumerate(queries) if len(q) <= query_max_length]
-        if not filtered_queries:
-            return [""] * len(queries)
+        if retriever_config["retriever_type"] == "Elasticsearch":
+            filtered_queries = [(i, q) for i, q in enumerate(queries) if len(q) <= query_max_length]
+            if not filtered_queries:
+                return [""] * len(queries)
 
-        indices, valid_queries = zip(*filtered_queries)
-        retrieve_results = retriever.bulk_retrieve(valid_queries, top_k)
-        rerank_k = retriever_config["rerank_k"]
-        if rerank_k > 0:
-            with Reranker() as reranker:
-                retrieve_results = reranker.rerank(valid_queries, retrieve_results, rerank_k)
-        # [[{"text":"안녕하세요", "score":0.5}, {"text":"반갑습니다", "score":0.3},],]
+            indices, valid_queries = zip(*filtered_queries)
+            retrieve_results = retriever.bulk_retrieve(valid_queries, top_k)
+            rerank_k = retriever_config["rerank_k"]
+            if rerank_k > 0:
+                with Reranker() as reranker:
+                    retrieve_results = reranker.rerank(valid_queries, retrieve_results, rerank_k)
+            # [[{"text":"안녕하세요", "score":0.5}, {"text":"반갑습니다", "score":0.3},],]
 
-        docs = [""] * len(queries)
-        for idx, result in zip(indices, retrieve_results):
-            docs[idx] = " ".join(f"[{item['score']}]: {item['text']}" for item in result if item["score"] >= threshold)
+            docs = [""] * len(queries)
+            for idx, result in zip(indices, retrieve_results):
+                docs[idx] = " ".join(
+                    f"[{item['score']}]: {item['text']}" for item in result if item["score"] >= threshold
+                )
 
+        elif retriever_config["retriever_type"] == "DPR":  # DPR인 경우
+            docs = []
+            for query in queries:
+                passages = ds_retriever.retrieve(query=query, k=top_k)  # DPR으로 검색
+
+                # passage 로딩 및 결합
+                for idx, (passage, score) in enumerate(passages):
+                    # passage ID에 해당하는 파일 경로 가져오기
+                    path = get_passage_file([idx])
+                    if path:
+                        with open(path, "rb") as f:
+                            passage_dict = pickle.load(f)
+                            docs.append((passage_dict[idx], score))  # passage와 score 저장
+                    else:
+                        logger.debug(f"No passage found for ID: {idx}")
+
+                    # 로깅 추가
+                    logger.info(f"Query: {query}")
+                    logger.info(f"Rank {idx+1}: Score: {score:.4f}, Passage: {passage}")
         return docs
 
     def load_and_save(retriever_config, file_path) -> List[Dict]:

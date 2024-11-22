@@ -28,33 +28,24 @@ class DataLoader:
         self.test_size = data_config["test_size"]
         self.prompt_config = data_config["prompt"]
 
-    def prepare_datasets(self, is_train=True):
+    def prepare_datasets(self, is_train):
         """학습 또는 테스트용 데이터셋 준비"""
-        if is_train:
-            # prompt 전처리된 데이터셋 파일이 존재한다면 이를 로드합니다.
-            processed_df_path = self.processed_train_path if is_train else self.processed_test_path
-            if os.path.isfile(processed_df_path):
-                logger.info(f"전처리된 데이터셋을 불러옵니다: {processed_df_path}")
-                processed_df = pd.read_csv(processed_df_path, encoding="utf-8")
-                processed_df["messages"] = processed_df["messages"].apply(literal_eval)
-                processed_dataset = Dataset.from_pandas(processed_df)
-            else:
-                dataset = self._load_data(self.train_path)
-                processed_dataset = self._process_dataset(dataset)
-            tokenized_dataset = self._tokenize_dataset(processed_dataset)
-            return self._split_dataset(tokenized_dataset)
+        # prompt 전처리된 데이터셋 파일이 존재한다면 이를 로드합니다.
+        processed_df_path = self.processed_train_path if is_train else self.processed_test_path
+        if os.path.isfile(processed_df_path):
+            logger.info(f"전처리된 데이터셋을 불러옵니다: {processed_df_path}")
+            processed_df = pd.read_csv(processed_df_path, encoding="utf-8")
+            processed_df["messages"] = processed_df["messages"].apply(literal_eval)
+            processed_dataset = Dataset.from_pandas(processed_df)
         else:
-            # prompt 전처리된 데이터셋 파일이 존재한다면 이를 로드합니다.
-            processed_df_path = self.processed_train_path if is_train else self.processed_test_path
-            if os.path.isfile(processed_df_path):
-                logger.info(f"전처리된 데이터셋을 불러옵니다: {processed_df_path}")
-                processed_df = pd.read_csv(processed_df_path, encoding="utf-8")
-                processed_df["messages"] = processed_df["messages"].apply(literal_eval)
-                processed_dataset = Dataset.from_pandas(processed_df)
-            else:
-                dataset = self._load_data(self.test_path)
-                processed_dataset = self._process_dataset(dataset, is_train=False)
-            return processed_dataset
+            dataset = self._load_data(is_train)
+            processed_dataset = self._process_dataset(dataset, is_train)
+
+        if is_train:
+            tokenized_dataset = self._tokenize_dataset(processed_dataset)
+            splitted_dataset = self._split_dataset(tokenized_dataset)
+            return splitted_dataset
+        return processed_dataset
 
     def _retrieve(self, df):  # noqa: C901
         if self.retriever_config["retriever_type"] == "Elasticsearch":
@@ -121,6 +112,7 @@ class DataLoader:
             docs = [""] * len(queries)
             for idx, result in zip(indices, retrieve_results):
                 docs[idx] = " ".join(item["text"] for item in result if item["score"] >= threshold)
+                docs[idx] = docs[idx][: self.retriever_config["result_max_length"]]
         elif self.retriever_config["retriever_type"] == "DPR":  # DPR인 경우
             docs = []
             for query in queries:
@@ -143,8 +135,9 @@ class DataLoader:
 
         return docs
 
-    def _load_data(self, file_path) -> List[Dict]:
+    def _load_data(self, is_train) -> List[Dict]:
         """csv를 읽어오고 dictionary 배열 형태로 변환합니다."""
+        file_path = self.train_path if is_train else self.test_path
         df = pd.read_csv(file_path)
         df["problems"] = df["problems"].apply(literal_eval)
         docs = self._retrieve(df)

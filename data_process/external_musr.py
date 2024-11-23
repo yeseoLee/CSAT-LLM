@@ -59,5 +59,5 @@ def translate_df(input_filename, output_filename):
 
 if __name__ == "__main__":
     dataset_name = "TAUR-Lab/MuSR"
-    process_external_datasets(dataset_name, "MuSR_en.csv")
-    translate_df("MuSR_en.csv", "MuSR_ko.csv")
+    process_external_datasets(dataset_name, "MuSR_en_raw.csv")
+    translate_df("MuSR_en_raw.csv", "MuSR_ko_raw.csv")

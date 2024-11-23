@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-def formatting(input_filename, output_filename):
+def formatting(suffix, input_filename, output_filename):
     # CSV 파일 읽기
     df = pd.read_csv(input_filename, encoding="utf-8")
 
@@ -9,7 +9,7 @@ def formatting(input_filename, output_filename):
     new_records = []
     for idx, row in df.iterrows():
         new_record = {
-            "id": f"external-data-{idx + 1}",
+            "id": f"external-data-{suffix}{idx + 1}",
             "paragraph": row["paragraph"],
             "problems": {"question": row["question"].strip(), "choices": eval(row["choices"]), "answer": row["answer"]},
         }
@@ -22,5 +22,5 @@ def formatting(input_filename, output_filename):
 
 if __name__ == "__main__":
     # formatting("external_raw.csv", "external.csv")
-    formatting("sat_gaokao_ko_raw.csv", "sat_gaokao_ko.csv")
-    formatting("MuSR_ko_raw.csv", "MuSR_ko.csv")
+    formatting("SAT", "sat_gaokao_ko_raw.csv", "sat_gaokao_ko.csv")
+    formatting("MuSR", "MuSR_ko_raw.csv", "MuSR_ko.csv")

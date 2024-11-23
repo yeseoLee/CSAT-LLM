@@ -59,6 +59,7 @@ training:
     num_train_epochs: 3
     learning_rate: 2.0e-05
     weight_decay: 0.01
+    optim: "adamw_torch" # 양자화: adamw_bnb_8bit
     logging_strategy: "steps"
     save_strategy: "steps"
     eval_strategy: "steps"

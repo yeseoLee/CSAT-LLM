@@ -1,4 +1,8 @@
+from ast import literal_eval
+import time
+
 from datasets import load_dataset
+from googletrans import Translator
 import pandas as pd
 
 
@@ -64,6 +68,28 @@ def process_and_concat_external_datasets(dataset_names, output_filename):
     concated_df.to_csv(output_filename, index=False)
 
 
+def translate_list_column(text):
+    items = literal_eval(text)
+
+    translator = Translator()
+    translated_items = []
+    for item in items:
+        translated = translator.translate(item, src="en", dest="ko").text
+        translated_items.append(translated)
+        time.sleep(0.01)  # API 호출 제한 방지를 위한 딜레이
+    return translated_items
+
+
+def clean_string(text):
+    # 문자열 내부의 모든 큰따옴표를 작은따옴표로 변환
+    text = text.replace('"', "'")
+    # 연속된 큰따옴표를 하나로 변환
+    while "''" in text:
+        text = text.replace("''", "'")
+    text = text.strip()  # 앞뒤 공백 제거
+    return text
+
+
 if __name__ == "__main__":
     dataset_names = [
         "dmayhem93/agieval-sat-en",
@@ -73,4 +99,4 @@ if __name__ == "__main__":
         "dmayhem93/agieval-lsat-ar",
         "dmayhem93/agieval-gaokao-english",
     ]
-    process_and_concat_external_datasets(dataset_names, "external_data_sat_gaokao.csv")
+    process_and_concat_external_datasets(dataset_names, "dmayhem93_sat_gaokao.csv")

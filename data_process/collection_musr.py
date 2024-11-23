@@ -1,5 +1,5 @@
+from data_process.process_google_translate import TranslationCache, translate_column, translate_list_column
 from datasets import load_dataset
-from google_translate import TranslationCache, translate_column, translate_list_column
 from loguru import logger
 import pandas as pd
 from tqdm import tqdm

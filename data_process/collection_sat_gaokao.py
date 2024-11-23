@@ -1,8 +1,4 @@
-from ast import literal_eval
-import time
-
 from datasets import load_dataset
-from googletrans import Translator
 import pandas as pd
 
 
@@ -66,18 +62,6 @@ def process_and_concat_external_datasets(dataset_names, output_filename):
 
     concated_df = pd.concat(dfs, axis=0)
     concated_df.to_csv(output_filename, index=False)
-
-
-def translate_list_column(text):
-    items = literal_eval(text)
-
-    translator = Translator()
-    translated_items = []
-    for item in items:
-        translated = translator.translate(item, src="en", dest="ko").text
-        translated_items.append(translated)
-        time.sleep(0.01)  # API 호출 제한 방지를 위한 딜레이
-    return translated_items
 
 
 def clean_string(text):

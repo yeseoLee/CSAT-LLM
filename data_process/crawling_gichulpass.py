@@ -89,7 +89,7 @@ def crawl_and_save(subject_code):
 
     concated_df = pd.concat(dfs, axis=0)
     len_df = len(concated_df)
-    concated_df.to_csv(f"gichulpass_{subject_code}_{len_df}.csv", index=False, encoding="utf-8")
+    concated_df.to_csv(f"gichulpass_{subject_code}_{len_df}_raw.csv", index=False, encoding="utf-8")
 
 
 if __name__ == "__main__":

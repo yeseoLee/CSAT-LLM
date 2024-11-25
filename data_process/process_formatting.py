@@ -21,6 +21,6 @@ def formatting(suffix, input_filename, output_filename):
 
 
 if __name__ == "__main__":
-    # formatting("external_raw.csv", "external.csv")
+    formatting("gichulpass", "gichulpass_35_760_raw.csv", "gichulpass_35_760.csv")
     formatting("SAT", "sat_gaokao_ko_raw.csv", "sat_gaokao_ko.csv")
     formatting("MuSR", "MuSR_ko_raw.csv", "MuSR_ko.csv")

@@ -1,10 +1,8 @@
-import bitsandbytes as bnb
 import evaluate
 import numpy as np
 from peft import LoraConfig
 import torch
 from transformers import EarlyStoppingCallback
-from transformers.trainer_pt_utils import get_parameter_names
 from trl import DataCollatorForCompletionOnlyLM, SFTConfig, SFTTrainer
 
 
@@ -40,27 +38,6 @@ class CustomTrainer:
             task_type=self.training_config["lora"]["task_type"],
         )
 
-        # Optimizer 설정
-        # https://huggingface.co/docs/transformers/en/perf_train_gpu_one#8-bit-adam
-        decay_parameters = get_parameter_names(self.model, [torch.nn.LayerNorm])
-        decay_parameters = [name for name in decay_parameters if "bias" not in name]
-        optimizer_grouped_parameters = [
-            {
-                "params": [p for n, p in self.model.named_parameters() if n in decay_parameters],
-                "weight_decay": self.training_config["params"]["weight_decay"],
-            },
-            {
-                "params": [p for n, p in self.model.named_parameters() if n not in decay_parameters],
-                "weight_decay": 0.0,
-            },
-        ]
-        adam_bnb_optim = bnb.optim.Adam8bit(
-            optimizer_grouped_parameters,
-            betas=(self.training_config["params"]["adam_beta1"], self.training_config["params"]["adam_beta2"]),
-            eps=self.training_config["params"]["adam_epsilon"],
-            lr=self.training_config["params"]["learning_rate"],
-        )
-
         # SFT 설정
         sft_config = SFTConfig(
             do_train=self.training_config["params"]["do_train"],
@@ -75,6 +52,7 @@ class CustomTrainer:
             num_train_epochs=self.training_config["params"]["num_train_epochs"],
             learning_rate=self.training_config["params"]["learning_rate"],
             weight_decay=self.training_config["params"]["weight_decay"],
+            optim=self.training_config["params"]["optim"],
             logging_strategy=self.training_config["params"]["logging_strategy"],
             save_strategy=self.training_config["params"]["save_strategy"],
             eval_strategy=self.training_config["params"]["eval_strategy"],
@@ -101,7 +79,6 @@ class CustomTrainer:
             args=sft_config,
             compute_metrics=self._compute_metrics,
             preprocess_logits_for_metrics=self._preprocess_logits_for_metrics,
-            optimizers=(adam_bnb_optim, None),
             callbacks=[
                 EarlyStoppingCallback(
                     early_stopping_patience=self.training_config["params"]["early_stop_patience"],

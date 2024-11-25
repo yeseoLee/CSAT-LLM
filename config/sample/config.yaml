@@ -58,10 +58,8 @@ training:
     max_grad_norm: 0.3
     num_train_epochs: 3
     learning_rate: 2.0e-05
-    adam_beta1: 0.9
-    adam_beta2: 0.999
-    adam_epsilon: 1.0e-08
     weight_decay: 0.01
+    optim: "adamw_torch" # 양자화: adamw_bnb_8bit
     logging_strategy: "steps"
     save_strategy: "steps"
     eval_strategy: "steps"

@@ -10,7 +10,7 @@ def formatting(suffix, input_filename, output_filename):
     for idx, row in df.iterrows():
         new_record = {
             "id": f"external-data-{suffix}{idx + 1}",
-            "paragraph": row["paragraph"],
+            "paragraph": "" if pd.isna(row["paragraph"]) else str(row["paragraph"]),
             "problems": {"question": row["question"].strip(), "choices": eval(row["choices"]), "answer": row["answer"]},
         }
         new_records.append(new_record)

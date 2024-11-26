@@ -1,6 +1,7 @@
+from collections import Counter
 import csv
 from glob import glob
-from collections import Counter
+
 
 """
 # 하드 보팅 앙상블 사용 방법 (CSV 버전)
@@ -42,11 +43,11 @@ def hard_voting_with_priority(predictions, priority_order):
     for id in predictions[0].keys():
         answers = [pred[id] for pred in predictions if id in pred]
         answer_counts = Counter(answer for answer in answers if answer)
-        
+
         if answer_counts:
             max_count = max(answer_counts.values())
             top_answers = [ans for ans, count in answer_counts.items() if count == max_count]
-            
+
             if len(top_answers) == 1:
                 result[id] = top_answers[0]
             else:

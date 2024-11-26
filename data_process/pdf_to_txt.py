@@ -9,6 +9,7 @@ def split_text_by_keyword(text, keyword):
     sections = [section.strip() + keyword for section in sections[:-1]] + [sections[-1].strip()]
     return sections
 
+
 def save_sections_to_files(sections, output_dir="sections"):
     os.makedirs(output_dir, exist_ok=True)
     for i, section in enumerate(sections):
@@ -17,9 +18,10 @@ def save_sections_to_files(sections, output_dir="sections"):
             f.write(section)
     print(f"Sections saved to '{output_dir}' directory.")
 
+
 if __name__ == "__main__":
-    pdf_file_path = './data/test/2025.pdf'
-    output_dir = './data/test/sections'
+    pdf_file_path = "./data/test/2025.pdf"
+    output_dir = "./data/test/sections"
     keyword = "답하시오"
 
     text = extract_text(pdf_file_path)

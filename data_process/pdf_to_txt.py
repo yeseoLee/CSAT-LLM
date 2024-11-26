@@ -1,6 +1,8 @@
 import os
 import re
+
 from pdfminer.high_level import extract_text
+
 
 def split_text_by_keyword(text, keyword):
     sections = re.split(rf"{keyword}", text)

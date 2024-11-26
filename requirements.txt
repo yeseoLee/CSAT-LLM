@@ -25,6 +25,7 @@ wikiextractor==3.0.6
 faiss-cpu==1.9.0 # faiss-gpu==1.7.2
 
 # Utils
+beautifulsoup4==4.12.3
 ipykernel==6.29.5
 ipywidgets==8.1.5
 loguru==0.7.2

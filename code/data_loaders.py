@@ -82,14 +82,23 @@ class DataLoader:
             return [""] * len(df)
 
         def _combine_text(row):
-            if self.retriever_config["query_type"] == "pqc":
-                return row["paragraph"] + " " + row["problems"]["question"] + " " + " ".join(row["problems"]["choices"])
-            if self.retriever_config["query_type"] == "pq":
-                return row["paragraph"] + " " + row["problems"]["question"]
-            if self.retriever_config["query_type"] == "pc":
-                return row["paragraph"] + " " + " ".join(row["problems"]["choices"])
+            # NaN 값 처리
+            paragraph = "" if pd.isna(row["paragraph"]) else str(row["paragraph"])
+            if pd.isna(row["problems"]):
+                problems = {"question": "", "choices": []}
             else:
-                return row["paragraph"]
+                problems = row["problems"]
+            question = str(problems.get("question", ""))
+            choices = [str(choice) for choice in problems.get("choices", [])]
+
+            if self.retriever_config["query_type"] == "pqc":
+                return paragraph + " " + question + " " + " ".join(choices)
+            if self.retriever_config["query_type"] == "pq":
+                return paragraph + " " + question
+            if self.retriever_config["query_type"] == "pc":
+                return paragraph + " " + " ".join(choices)
+            else:
+                return paragraph
 
         top_k = self.retriever_config["top_k"]
         threshold = self.retriever_config["threshold"]

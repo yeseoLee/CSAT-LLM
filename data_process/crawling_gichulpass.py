@@ -1,4 +1,5 @@
 import json
+import re
 
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -6,8 +7,12 @@ import requests
 
 
 def answer_symbol_to_int(symbol: str) -> int:
-    answer_map = {"①": 1, "②": 2, "③": 3, "④": 4}
-    return answer_map.get(symbol, -1)
+    # 정규표현식으로 특수문자만 추출
+    special_chars = re.findall(r"[①②③④⑤]", symbol)
+    cleaned_symbol = special_chars[0] if special_chars else symbol
+
+    answer_map = {"①": 1, "②": 2, "③": 3, "④": 4, "⑤": 5}
+    return answer_map.get(cleaned_symbol, -1)
 
 
 def extract_question_data(soup, with_table=False):
@@ -129,4 +134,4 @@ if __name__ == "__main__":
     crawl_and_save(subject_code=20)
     crawl_and_save(subject_code=26)
     crawl_and_save(subject_code=34)
-    # crawl_and_save(subject_code=35)
+    crawl_and_save(subject_code=35)

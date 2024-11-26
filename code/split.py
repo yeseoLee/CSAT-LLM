@@ -78,6 +78,7 @@ def main():
     output_file_path = "../data/classification_results.csv"  # 출력 파일 경로 설정
     result_df.to_csv(output_file_path, index=False, encoding="utf-8-sig")  # CSV로 저장
 
+    logger.debug(f"결과가 {output_file_path}에 저장되었습니다.")
 
 
 if __name__ == "__main__":

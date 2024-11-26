@@ -195,7 +195,7 @@ class DataLoader:
                     document=row["document"],
                 )
             else:
-                message_mid = self.prompt_config["start"]
+                message_mid = self.prompt_config["mid"]
             # end
             message_end = self.prompt_config["end"]
 

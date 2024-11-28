@@ -23,7 +23,7 @@ def formatting(suffix, input_filename, output_filename):
 if __name__ == "__main__":
     formatting("gichulpass20-", "gichulpass_20_107_raw.csv", "gichulpass_20_107.csv")
     formatting("gichulpass26-", "gichulpass_26_1319_raw.csv", "gichulpass_24_1319.csv")
-    formatting("gichulpass34-", "gichulpass_34_1826_raw.csv", "gichulpass_34_1826.csv")
+    formatting("gichulpass34-", "gichulpass_34_1352_raw.csv", "gichulpass_34_1352.csv")
     formatting("gichulpass35-", "gichulpass_35_568_raw.csv", "gichulpass_35_568.csv")
     formatting("SAT", "sat_gaokao_ko_raw.csv", "sat_gaokao_ko.csv")
     formatting("MuSR", "MuSR_ko_raw.csv", "MuSR_ko.csv")

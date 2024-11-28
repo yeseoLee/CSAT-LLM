@@ -2,6 +2,7 @@ import json
 import re
 
 from bs4 import BeautifulSoup
+from datasets import load_dataset
 import pandas as pd
 import requests
 
@@ -128,6 +129,27 @@ def crawl_and_save(subject_code):
     concated_df = pd.concat(dfs, axis=0)
     len_df = len(concated_df)
     concated_df.to_csv(f"gichulpass_{subject_code}_{len_df}_raw.csv", index=False, encoding="utf-8")
+
+
+def check_KMMLU(input_file, output_file):
+    df = pd.read_csv(input_file, encoding="utf-8")
+    ds = load_dataset("HAERAE-HUB/KMMLU", "Korean-History")
+    # df의 None값을 빈 문자열로 변환하고 모든 값을 문자열로 변환
+    df = df.fillna("")
+    df = df.astype(str)
+
+    # 모든 split의 question을 하나로 합치기
+    questions = pd.concat([pd.DataFrame(ds["train"]), pd.DataFrame(ds["dev"]), pd.DataFrame(ds["test"])])
+
+    # 포함 여부를 확인하는 함수
+    def check_inclusion(column):
+        return column.apply(lambda x: any(x in question for question in questions["question"]))
+
+    # paragraph와 question 각각 확인 후 둘 중 하나라도 True면 True
+    df["include"] = check_inclusion(df["paragraph"]) | check_inclusion(df["question"])
+
+    new_df = df[not df["include"]]
+    new_df.to_csv(output_file, index=False)
 
 
 if __name__ == "__main__":

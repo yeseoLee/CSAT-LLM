@@ -108,3 +108,4 @@ echo "Setup complete!"
 # git config --local user.email "$email"
 # git config --local user.name "$username"
 # git config --local credential.helper "cache --timeout=360000"
+# git config --local commit.template .gitmessage.txt

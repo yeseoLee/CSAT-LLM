@@ -13,9 +13,9 @@
 | 평가 지표  | 정확도(Accuracy) = 모델이 맞춘 문제 수 / 전체 문제 수 |
 
 ## 🎖️ Leader Board
-### 🥈 Public Leader Board (2위)
+### 🥈 Public Leader Board (2위, 총 15팀)
 <img width="1216" alt="image" src="./assets/public_rank.png">
-### 🥈 Priavate Leader Board (2위)
+### 🥈 Priavate Leader Board (2위, 총 15팀)
 <img width="1216" alt="image" src="./assets/private_rank.png">
 
 ## 👨‍💻 Contributors

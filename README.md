@@ -46,8 +46,8 @@
       </a>
     </td>
     <td align="center">
-      <img src="https://github.com/gayeon7877.png" alt="양가연" width="100" height="100" style="border-radius: 50%;"/><br>
-      <a href="https://github.com/gayeon7877">
+      <img src="https://github.com/Effyee.png" alt="양가연" width="100" height="100" style="border-radius: 50%;"/><br>
+      <a href="https://github.com/Effyee">
         <img src="https://img.shields.io/badge/%EC%96%91%EA%B0%80%EC%97%B0-grey?style=for-the-badge&logo=github" alt="badge 양가연"/>
       </a>
     </td>
